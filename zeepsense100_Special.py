@@ -242,7 +242,6 @@ class ZeepSenseEasy():
         self.conv2 = [x for x in range(self.config.INPUT_DIM)]
         self.sensor_output = [x for x in range(self.config.INPUT_DIM)]
         for sensor in range(self.config.INPUT_DIM):
-            print(sensor)
             self.sensor_input[sensor] = self.single_input[:, sensor * self.single_img_length : (sensor + 1) * self.single_img_length, :, :]
             self.sensor_input[sensor] = Reshape((10, self.single_img_length, self.single_img_length, 3), name = "Input_" + self.config.SENSOR_LIST[sensor])(self.sensor_input[sensor])
 #=======================================================Conv1==============================================

@@ -2,7 +2,7 @@ from util import *
 import os
 from Configuration import Configuration
 from GAF import GAF
-from check import is_valid_jpg, is_valid_png
+
 #=======================Configuration Modification=====================
 config = Configuration()
 config.INTERVAL_LENGTH = 50
@@ -21,7 +21,7 @@ config.fresh()
 print('=====Preprocess start=====')
 #=======================Time-series Data to GAF Figure=================
 print('=====GAF start=====')
-# GAF(True,config)
+GAF(True,config)
 print('=====GAF finished=====')
 #======================================================================
 #===========================GAF Figure 20 to 1=========================
@@ -60,16 +60,20 @@ print('=====Seperate finished=====')
 print('=====Preprocess finished=====')
 #==========================Check if Every pic is valid================
 print('=====Check start!=====')
-for set in os.listdir(dst_device_path):
-    set_path = os.path.join(dst_device_path, set)
-    for gt in os.listdir(set_path):
-        gt_path = os.path.join(set_path, gt)
-        for file in os.listdir(path):
-            pic_file = os.path.join(gt_path, file)
-            isJpg = is_valid_jpg(pic_file)
-            isPng = is_valid_png(pic_file)
-            if not isJpg:
-                print("jpeg : %s, png %s, file %s " % (isJpg, isPng, file))
-    print(gt + ' finished!')
-print(set + ' finished')
+dst_dir = os.path.join(config.DATASET)
+dst_dir = os.path.join(dst_dir, 'GAF4ZS')
+dst_dir = os.path.join(dst_dir, 'f' + str(config.INTERVAL_LENGTH))
+for device in config.DEVICE_LIST:
+    for set in os.listdir(dst_device_path):
+        set_path = os.path.join(dst_device_path, set)
+        for gt in os.listdir(set_path):
+            gt_path = os.path.join(set_path, gt)
+            for file in os.listdir(gt_path):
+                pic_file = os.path.join(gt_path, file)
+                isJpg = is_valid_jpg(pic_file)
+                isPng = is_valid_png(pic_file)
+                if not isJpg:
+                    print("jpeg : %s, png %s, file %s " % (isJpg, isPng, file))
+        print(set + ' finished!')
+    print(device + ' finished!')
 print('=====Check finished!=====')
