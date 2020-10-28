@@ -77,8 +77,7 @@ def GAF(threeD,config):
                             GASF_base[:, :, 1] = GASF_y
                             GASF_base[:, :, 2] = GASF_z
                             GASF_base = (GASF_base+1)*128
-                            savepath = config.DATASET + '\\GAFjpg3d\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 
-                            'train' + '\\' + gt
+                            savepath = config.DATASET + '\\GAFjpg3d\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
                             if not os.path.exists(savepath):
                                 mkdir(savepath)
                             GASF_resized = cv2.resize(GASF_base, (config.IMG_SIZE, config.IMG_SIZE))
@@ -89,8 +88,7 @@ def GAF(threeD,config):
                             GASF_base[0:INTERVAL_LENGTH, INTERVAL_LENGTH:2 * INTERVAL_LENGTH] = GASF_y
                             GASF_base[INTERVAL_LENGTH:2 * INTERVAL_LENGTH, 0:INTERVAL_LENGTH] = GASF_z
                             GASF_base[INTERVAL_LENGTH:2 * INTERVAL_LENGTH, INTERVAL_LENGTH:2 * INTERVAL_LENGTH] = GASF_ab
-                            savepath = config.DATASET + '\\GAFjpg\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 
-                            'train' + '\\' + gt
+                            savepath = config.DATASET + '\\GAFjpg\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
                             if not os.path.exists(savepath):
                                 mkdir(savepath)
                             GASF_resized = cv2.resize(GASF_base, (config.IMG_SIZE, config.IMG_SIZE))

@@ -96,7 +96,7 @@ def pic20to1(src_dir, dst_dir, pic_size,set_amount,dim):
 
 
 
-def picNto1(src_dir,dst_dir,config,pic_size):
+def picNto1(src_dir,dst_dir,config):
     filelist = os.listdir(src_dir)
     for user in config.USER_LIST:
         filelist_sameuser = [file for file in filelist if file.split('_')[1] == user]
@@ -105,7 +105,7 @@ def picNto1(src_dir,dst_dir,config,pic_size):
         for pic_index in range(len(filelist_sameuser)//config.INPUT_DIM - 10 + 1):
         # 10 is a changable parameter
             row = 0
-            picNbase = np.zeros([config.INPUT_DIM*pic_size, 10*pic_size, 3])
+            picNbase = np.zeros([config.INPUT_DIM*config.IMG_SIZE, 10*config.IMG_SIZE, 3])
             for sensor in config.SENSOR_LIST:
                 filelist_sameusersensor = [file for file in filelist_sameuser if file.split('_')[3] == sensor]
                 filelist_sameusersensor.sort(key = takeNumber)
@@ -113,8 +113,8 @@ def picNto1(src_dir,dst_dir,config,pic_size):
                     # 10 is a changable parameter
                     #print(pic_index + figure_index)
                     fig = cv2.imread(os.path.join(src_dir,filelist_sameusersensor[pic_index + figure_index]))
-                    fig = cv2.resize(fig, (pic_size,pic_size))
-                    picNbase[row * pic_size:(row+1) * pic_size, figure_index * pic_size:(figure_index + 1) * pic_size] = fig
+                    fig = cv2.resize(fig, (config.IMG_SIZE,config.IMG_SIZE))
+                    picNbase[row * config.IMG_SIZE:(row+1) * config.IMG_SIZE, figure_index * config.IMG_SIZE:(figure_index + 1) * config.IMG_SIZE] = fig
                 row += 1
             template = filelist_sameuser[0].split('_')
             template.pop(-1)
@@ -163,7 +163,18 @@ def plot_confusion_matrix(cm, labels_name, title, save_dir):
     plt.tight_layout()
     plt.savefig(save_dir, format='jpg')
     plt.close(3)
-    
+
+def is_valid_jpg(jpg_file):
+    with open(jpg_file, 'rb') as f:
+        f.seek(-2, 2)
+        buf = f.read()
+        return buf ==  b'\xff\xd9'
+
+def is_valid_png(png_file):
+    with open(png_file, 'rb') as f:
+        f.seek(-2, 2)
+        buf = f.read()
+        return buf == b'\x60\x82'
 if __name__ == '__main__':
     from Configuration import Configuration
     config = Configuration()
