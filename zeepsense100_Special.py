@@ -510,11 +510,11 @@ config.fresh()
 #=====================================================================================
 example = ZeepSenseEasy(config)
 example.model.summary()
-train_dir = os.path.join(config.DATASET_DIR, 'train')
-test_dir = os.path.join(config.DATASET_DIR, 'test')
-val_dir = os.path.join(config.DATASET_DIR, 'test')#to swap test to val
+train_dir = os.path.join(config.DATASET_DIR, 'train_halfoverlap')
+test_dir = os.path.join(config.DATASET_DIR, 'test_halfoverlap')
+val_dir = os.path.join(config.DATASET_DIR, 'test_halfoverlap')#to swap test to val
 h5_dir_list = [config.DATASET,'GAF4ZS','f' + str(config.INTERVAL_LENGTH), 'zs_original.h5']
-h5_name = 'zs.h5'
+h5_name = 'zs_halfoverlap.h5'
 h5_dir = os.path.join(config.SAVE_DIR, h5_name)
 example.train(train_dir,
               test_dir,

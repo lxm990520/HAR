@@ -128,7 +128,7 @@ def picNto1(src_dir,dst_dir,config):
 
 
 
-def moveTrainTest(dir):
+def moveTrainTest(dir,config):
 #
     # for root, dirs, files in os.walk(os.path.join(dir,'test')):
     #     for filename in files:
@@ -140,15 +140,25 @@ def moveTrainTest(dir):
     #                 print(filename + "moved")
     #         else:
     #             raise NameError("a file is in a wrong place " + os.path.join(root, filename))
-    for root, dirs, files in os.walk(os.path.join(dir,'train')):
-        for filename in files:
+    for root, dirs, files in os.walk(os.path.join(dir,'train_halfoverlap')):
+        if files is not None:
+
             rootlist = root.split("\\")
-            rootlist[-2] = "test"
+            rootlist[-2] = "test_halfoverlap"
             if not os.path.exists(os.path.join(*rootlist)):
                 mkdir(os.path.join(*rootlist))
-            if int(filename.split('_')[-1].split('.')[0])%5==0:#5 is changable parameter
-                shutil.move(os.path.join(root, filename), os.path.join(*rootlist, filename))
-                #print(filename + "moved")
+            for user in config.USER_LIST:
+                file_sameuser = []
+                for file in files:
+                    if file.split('_')[1] == user:
+                        file_sameuser.append(file)
+                file_sameuser.sort(key = takeNumber)
+                thresh = int(len(file_sameuser) * 0.7)
+
+                for file in file_sameuser[thresh+9:]:
+                    shutil.move(os.path.join(root, file), os.path.join(*rootlist, file))
+                for file in file_sameuser[thresh:thresh+9]:
+                    os.remove(os.path.join(root, file))
 def plot_confusion_matrix(cm, labels_name, title, save_dir):
     plt.figure(3)
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]    # 归一化
