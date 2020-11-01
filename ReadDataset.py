@@ -23,9 +23,7 @@ if __name__ == '__main__':
     config.USER_LIST = [str(x) for x in range(1,31)]
     #============================='Null' can not be removed!==================================
     config.GT_LIST = ['Null','Walking', 'Walking_upstairs', 'Walking_downstaris',
-                        'Sitting', 'Standing', 'Laying', 'Stand_to_sit',
-                        'Sit_to_stand', 'Sit_to_lie', 'Lie_to_sit',
-                        'Stand_to_lie', 'Lie_to_stand']
+                        'Sitting', 'Standing', 'Laying']
     #=========================================================================================
     #====================================Use Acc1 and Gyro1 Only==============================
     #config.SENSOR_LIST = ['Acc1', 'Gyro1']
@@ -40,7 +38,7 @@ if __name__ == '__main__':
 
     Label_header = ['ExpId', 'UserId', 'GtId', 'Start', 'End']
     dataset_dir = os.path.join(config.DATASET)
-    dataset_dir = os.path.join(dataset_dir, 'Phonedata')
+    dataset_dir = os.path.join(dataset_dir, 'Phonedata_noTrans')
     rawdata_dir = os.path.join('RawDataset', config.DATASET)
     record = pd.read_csv(os.path.join(rawdata_dir, 'labels.txt'), names = Label_header, sep = ' ')
     for file in os.listdir(rawdata_dir):
@@ -60,12 +58,15 @@ if __name__ == '__main__':
         record_user = record[record.UserId == userId]
         record_exp = record[record.ExpId == expId]
         for row in record_exp.itertuples():
-            gt = config.GT_LIST[row.GtId]
+            try:
+                gt = config.GT_LIST[row.GtId]
+            except:
+                continue
             dst_name_list = ['Phone', sensor, device, str(expId), str(userId), gt]
             dst_name = '_'.join(dst_name_list) + '.csv'
 
             subdf = df.iloc[row.Start + 1: row.End + 1]#index could be wrong
-            dst_dir_list = ['HAR', 'Phonedata', 'SII', user]
+            dst_dir_list = ['HAR', 'Phonedata_noTrans', 'SII', user]
             dst_dir = os.path.join(*dst_dir_list)
             if not os.path.exists(dst_dir):
                 mkdir(dst_dir)

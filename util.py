@@ -102,20 +102,44 @@ def picNto1(src_dir,dst_dir,config):
         filelist_sameexp = [file for file in filelist if file.split('_')[1] == exp]
 
         print(exp + ' start!')
+        flag = False
         for pic_index in range(len(filelist_sameexp)//config.INPUT_DIM - 10 + 1):
-        # 10 is a changable parameter
-            row = 0
-            picNbase = np.zeros([config.INPUT_DIM*config.IMG_SIZE, 10*config.IMG_SIZE, 3])
-            for sensor in config.SENSOR_LIST:
-                filelist_sameexpsensor = [file for file in filelist_sameexp if file.split('_')[-2] == sensor]
-                filelist_sameexpsensor.sort(key = takeNumber)
-                for figure_index in range(10):
-                    # 10 is a changable parameter
-                    #print(pic_index + figure_index)
-                    fig = cv2.imread(os.path.join(src_dir,filelist_sameexpsensor[pic_index + figure_index]))
-                    fig = cv2.resize(fig, (config.IMG_SIZE,config.IMG_SIZE))
-                    picNbase[row * config.IMG_SIZE:(row+1) * config.IMG_SIZE, figure_index * config.IMG_SIZE:(figure_index + 1) * config.IMG_SIZE] = fig
-                row += 1
+            # 10 is a changable parameter
+            filelist_sameexpsensor = [file for file in filelist_sameexp if file.split('_')[-2] == config.SENSOR_LIST[0]]
+            filelist_sameexpsensor.sort(key=takeNumber)
+            if not takeNumber(filelist_sameexpsensor[pic_index + 9]) - takeNumber(
+                    filelist_sameexpsensor[pic_index]) == 9:  # 9 is a changable parameter
+                flag = False
+                continue
+
+            if flag:
+                picNbase[:, : 9 * config.IMG_SIZE] = picNbase[:, 1 * config.IMG_SIZE:]
+                row = 0
+                for sensor in config.SENSOR_LIST:
+                    filelist_sameexpsensor = [file for file in filelist_sameexp if file.split('_')[-2] == sensor]
+                    filelist_sameexpsensor.sort(key=takeNumber)
+                    fig = cv2.imread(os.path.join(src_dir, filelist_sameexpsensor[pic_index + 9]))
+                    fig = cv2.resize(fig, (config.IMG_SIZE, config.IMG_SIZE))
+                    picNbase[row * config.IMG_SIZE:(row + 1) * config.IMG_SIZE,
+                    9 * config.IMG_SIZE:] = fig
+                    row += 1
+            else:
+                picNbase = np.zeros([config.INPUT_DIM * config.IMG_SIZE, 10 * config.IMG_SIZE, 3])
+                row = 0
+                for sensor in config.SENSOR_LIST:
+                    filelist_sameexpsensor = [file for file in filelist_sameexp if file.split('_')[-2] == sensor]
+                    filelist_sameexpsensor.sort(key=takeNumber)
+
+                    for figure_index in range(10):
+                        # 10 is a changable parameter
+                        # print(pic_index + figure_index)
+                        fig = cv2.imread(os.path.join(src_dir, filelist_sameexpsensor[pic_index + figure_index]))
+                        fig = cv2.resize(fig, (config.IMG_SIZE, config.IMG_SIZE))
+                        picNbase[row * config.IMG_SIZE:(row + 1) * config.IMG_SIZE,
+                        figure_index * config.IMG_SIZE:(figure_index + 1) * config.IMG_SIZE] = fig
+                    row += 1
+                flag = True
+
             template = filelist_sameexp[0].split('_')
             template.pop(-1)
             template.pop(-1)
@@ -140,25 +164,21 @@ def moveTrainTest(dir,config):
     #                 print(filename + "moved")
     #         else:
     #             raise NameError("a file is in a wrong place " + os.path.join(root, filename))
+    print(dir)
     for root, dirs, files in os.walk(os.path.join(dir,'train_halfoverlap')):
+
+        print(root)
         if files is not None:
 
             rootlist = root.split("\\")
             rootlist[-2] = "test_halfoverlap"
             if not os.path.exists(os.path.join(*rootlist)):
                 mkdir(os.path.join(*rootlist))
-            for exp in config.EXP_LIST:
-                file_sameexp = []
-                for file in files:
-                    if file.split('_')[1] == exp:
-                        file_sameexp.append(file)
-                file_sameexp.sort(key = takeNumber)
-                thresh = int(len(file_sameexp) * 0.7)
+            file_testuser = [file for file in files if file.split('_')[2] == config.TEST_USER]
+            for file in file_testuser:
+                shutil.move(os.path.join(root, file), os.path.join(*rootlist, file))
 
-                for file in file_sameexp[thresh+9:]:
-                    shutil.move(os.path.join(root, file), os.path.join(*rootlist, file))
-                for file in file_sameexp[thresh:thresh+9]:
-                    os.remove(os.path.join(root, file))
+
 def plot_confusion_matrix(cm, labels_name, title, save_dir):
     plt.figure(3)
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]    # 归一化
@@ -193,48 +213,47 @@ if __name__ == '__main__':
     config.DATASET = 'HAR'
     config.USER_LIST = [str(x) for x in range(1,31)]
     config.GT_LIST = ['Walking', 'Walking_upstairs', 'Walking_downstaris',
-                      'Sitting', 'Standing', 'Laying', 'Stand_to_sit',
-                      'Sit_to_stand', 'Sit_to_lie', 'Lie_to_sit',
-                      'Stand_to_lie', 'Lie_to_stand']
+                      'Sitting', 'Standing', 'Laying']
     config.EXP_LIST = [str(x) for x in range(1,62)]
     #config.SENSOR_LIST = ['Acc1', 'Gyro1']
     config.SENSOR_LIST = ['acc','gyro']
     config.DEVICE_LIST = ['SII']
 
+    config.TEST_USER = '1'
+
     config.fresh()
     print('=====Nto1 start=====')
-    dst_dir = os.path.join(config.DATASET)
-    dst_dir = os.path.join(dst_dir, 'GAF4ZS')
-    dst_dir = os.path.join(dst_dir,'f'+str(config.INTERVAL_LENGTH))
-    src_dir = os.path.join(config.DATASET)
-    src_dir = os.path.join(src_dir, 'GAFjpg3d')
-    src_dir = os.path.join(src_dir,'f'+str(config.INTERVAL_LENGTH))
-    for device in config.DEVICE_LIST:
-        dst_device_path = os.path.join(dst_dir,device)
-        dst_device_path = os.path.join(dst_device_path,'train_full')
-        src_device_path = os.path.join(src_dir,device)
-        src_device_path = os.path.join(src_device_path, 'train')
-        for gt in config.GT_LIST:
-            dst_gt_path = os.path.join(dst_device_path,gt)
-            src_gt_path = os.path.join(src_device_path,gt)
-            if not os.path.exists(dst_gt_path):
-                mkdir(dst_gt_path)
-            picNto1(src_gt_path,dst_gt_path,config)
-            print(gt + ' finished!')
-        print(device + ' finished!')
+    # dst_dir = os.path.join(config.DATASET)
+    # dst_dir = os.path.join(dst_dir, 'GAF4ZS_noTrans')
+    # dst_dir = os.path.join(dst_dir,'f'+str(config.INTERVAL_LENGTH))
+    # src_dir = os.path.join(config.DATASET)
+    # src_dir = os.path.join(src_dir, 'GAFjpg3d_noTrans')
+    # src_dir = os.path.join(src_dir,'f'+str(config.INTERVAL_LENGTH))
+    # for device in config.DEVICE_LIST:
+    #     dst_device_path = os.path.join(dst_dir,device)
+    #     dst_device_path = os.path.join(dst_device_path,'train_full')
+    #     src_device_path = os.path.join(src_dir,device)
+    #     src_device_path = os.path.join(src_device_path, 'train')
+    #     for gt in config.GT_LIST:
+    #         dst_gt_path = os.path.join(dst_device_path,gt)
+    #         src_gt_path = os.path.join(src_device_path,gt)
+    #         if not os.path.exists(dst_gt_path):
+    #             mkdir(dst_gt_path)
+    #         picNto1(src_gt_path,dst_gt_path,config)
+    #         print(gt + ' finished!')
+    #     print(device + ' finished!')
     print('=====Nto1 finished=====')
 #=============================train2test function=======================
-    # from Configuration import Configuration
-    # config = Configuration()
-    # for freq in [200]:
-    #     config.INTERVAL_LENGTH = freq
-    #     dst_dir = os.path.join('GAF4ZS')
-    #     dst_dir = os.path.join(dst_dir, 'f' + str(config.INTERVAL_LENGTH))
-    #     for device in config.DEVICE_LIST:
-    #         dst_device_path = os.path.join(dst_dir, device)
-    #         moveTrainTest(os.path.join(dst_dir))
-    #         print(device + ' finished!')
-    #     print('f ' + str(freq) + 'finished!')
+    print('=====Seperate start=====')
+    dst_dir = os.path.join(config.DATASET)
+    dst_dir = os.path.join(dst_dir, 'GAF4ZS_noTrans')
+    dst_dir = os.path.join(dst_dir, 'f' + str(config.INTERVAL_LENGTH))
+    for device in config.DEVICE_LIST:
+        dst_device_path = os.path.join(dst_dir, device)
+        #print(dst_device_path)
+        moveTrainTest(dst_device_path,config)
+        print(device + ' finished!')
+    print('=====Seperate finished=====')
 
 
 

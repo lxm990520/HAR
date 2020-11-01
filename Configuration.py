@@ -53,9 +53,12 @@ class Configuration:
     def fresh(self):
         self.INPUT_DIM = len(self.SENSOR_LIST)
         self.OUTPUT_DIM = len(self.GT_LIST)
+        dir_list = [self.DATASET, 'GAF4ZS_noTrans', 'f' + str(self.INTERVAL_LENGTH), self.DEVICE_LIST[0]]
+        self.DATASET_DIR = os.path.join(*dir_list)
         self.VERSION = time.strftime("%m-%d-%I-%M")
-        dir_list = [self.DATASET, 'GAF4ZS', 'f' + str(self.INTERVAL_LENGTH), self.DEVICE_LIST[0]]
-        self.DATASET_DIR = os.path.join(*dir_list) 
+
+
+    def save(self):
         dir_list = [self.DATASET, 'Result', 'f' + str(self.INTERVAL_LENGTH), self.DEVICE_LIST[0], self.VERSION]
         self.SAVE_DIR = os.path.join(*dir_list)
         if not os.path.exists(self.SAVE_DIR):

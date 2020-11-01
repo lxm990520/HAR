@@ -13,7 +13,7 @@ import os
 
 def GAF(threeD,config):
     config.HEADER_LIST = ['Index', 'x', 'y', 'z']
-    src_dir = os.path.join(config.DATASET, 'Phonedata')
+    src_dir = os.path.join(config.DATASET, 'Phonedata_noTrans')
     for device in config.DEVICE_LIST:
         device_dir = os.path.join(src_dir,device)
         for user in config.USER_LIST:
@@ -80,7 +80,7 @@ def GAF(threeD,config):
                         gt = file.split('.')[0].split('_', 5)[-1]
                         expId = file.split('_')[3]
                         sensor = file.split('_')[1]
-                        savepath = config.DATASET + '\\GAFjpg3d\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
+                        savepath = config.DATASET + '\\GAFjpg3d_noTrans\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
                         if not os.path.exists(savepath):
                             mkdir(savepath)
                         GASF_resized = cv2.resize(GASF_base, (config.IMG_SIZE, config.IMG_SIZE))
@@ -94,7 +94,7 @@ def GAF(threeD,config):
                         gt = file.split('.')[0].split('_',5)[-1]
                         expId = file.split('_')[3]
                         sensor = file.split('_')[1]
-                        savepath = config.DATASET + '\\GAFjpg\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
+                        savepath = config.DATASET + '\\GAFjpg_noTrans\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
                         if not os.path.exists(savepath):
                             mkdir(savepath)
                         GASF_resized = cv2.resize(GASF_base, (config.IMG_SIZE, config.IMG_SIZE))
@@ -116,9 +116,7 @@ if __name__ == '__main__':
         config.DATASET = 'HAR'
         config.USER_LIST = [str(x) for x in range(1,31)]
         config.GT_LIST = ['Walking', 'Walking_upstairs', 'Walking_downstaris',
-                  'Sitting', 'Standing', 'Laying', 'Stand_to_sit',
-                  'Sit_to_stand', 'Sit_to_lie', 'Lie_to_sit',
-                  'Stand_to_lie', 'Lie_to_stand']
+                  'Sitting', 'Standing', 'Laying']
         config.SENSOR_LIST = ['acc','gyro']
         config.DEVICE_LIST = ['SII']
         GAF(True,config)

@@ -511,15 +511,14 @@ config.WINDOW_LENGTH = 25
 config.DATASET = 'HAR'
 config.USER_LIST = [str(x) for x in range(1,31)]
 config.GT_LIST = ['Walking', 'Walking_upstairs', 'Walking_downstaris',
-                  'Sitting', 'Standing', 'Laying', 'Stand_to_sit',
-                  'Sit_to_stand', 'Sit_to_lie', 'Lie_to_sit',
-                  'Stand_to_lie', 'Lie_to_stand']
+                  'Sitting', 'Standing', 'Laying']
 config.EXP_LIST = [str(x) for x in range(1,62)]
 #config.SENSOR_LIST = ['Acc1', 'Gyro1']
 config.SENSOR_LIST = ['acc','gyro']
 config.DEVICE_LIST = ['SII']
 
 config.fresh()
+config.save()
 #=====================================================================================
 example = ZeepSenseEasy(config)
 example.model.summary()
