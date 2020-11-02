@@ -33,27 +33,23 @@ class Configuration:
             r.write('\nGT_LIST : ' + str(self.GT_LIST))
     def __init__(self):
         self.GROUP_NUMBER = 300    #200
-        self.INTERVAL_LENGTH = 150   #200
+        self.INTERVAL_LENGTH = 200   #200
         self.WINDOW_LENGTH = 100     #a mistake here. if IL=WL, no overlap
         self.EDGE_LEN = 100
         self.IMG_SIZE = 200
         self.TIME_STEPS = 10
-        self.DATASET = 'HAR'
-        self.USER_LIST = [str(x) for x in range(1,31)]
-        self.EXP_LIST = [str(x) for x in range(1,61)]
-        self.SENSOR_LIST = ['acc','gyro']
-        self.DEVICE_LIST = ['SII']
-        self.GT_LIST = ['Walking', 'Walking_upstairs', 'Walking_downstaris',
-                        'Sitting', 'Standing', 'Laying', 'Stand_to_sit',
-                        'Sit_to_stand', 'Sit_to_lie', 'Lie_to_sit',
-                        'Stand_to_lie', 'Lie_to_stand']
+        self.DATASET = 'HHAR'
+        self.USER_LIST = ['a','b','c','d','e','f','g','h','i']
+        self.SENSOR_LIST = ['acce','gyro']
+        self.DEVICE_LIST = ['nexus41','nexus42','s3_1','s3mini_1','s3mini_2']
+        self.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
         
         
 
     def fresh(self):
         self.INPUT_DIM = len(self.SENSOR_LIST)
         self.OUTPUT_DIM = len(self.GT_LIST)
-        dir_list = [self.DATASET, 'GAF4ZS_noTrans', 'f' + str(self.INTERVAL_LENGTH), self.DEVICE_LIST[0]]
+        dir_list = [self.DATASET, 'GAF4ZS', 'f' + str(self.INTERVAL_LENGTH), self.DEVICE_LIST[0]]
         self.DATASET_DIR = os.path.join(*dir_list)
         self.VERSION = time.strftime("%m-%d-%I-%M")
 

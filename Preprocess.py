@@ -5,16 +5,16 @@ from GAF import GAF
 
 #=======================Configuration Modification=====================
 config = Configuration()
-config.INTERVAL_LENGTH = 50
-config.WINDOW_LENGTH = 25
-config.DATASET = 'HAR'
-config.USER_LIST = [str(x) for x in range(1,31)]
-config.GT_LIST = ['Walking', 'Walking_upstairs', 'Walking_downstaris',
-                  'Sitting', 'Standing', 'Laying']
-config.EXP_LIST = [str(x) for x in range(1,62)]
-#config.SENSOR_LIST = ['Acc1', 'Gyro1']
-config.SENSOR_LIST = ['acc','gyro']
-config.DEVICE_LIST = ['SII']
+
+config.INTERVAL_LENGTH = 200
+config.WINDOW_LENGTH = 100
+config.DATASET = 'HHAR'
+config.USER_LIST = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
+config.GT_LIST = ['stand', 'sit', 'walk', 'stairsup', 'stairsdown', 'bike']
+config.SENSOR_LIST = ['acce', 'gyro']
+config.DEVICE_LIST = ['nexus41', 'nexus42', 's3mini1', 's3mini2']
+
+config.TEST_USER = 'a'
 
 config.fresh()
 #======================================================================
@@ -27,10 +27,10 @@ print('=====GAF finished=====')
 #===========================GAF Figure 20 to 1=========================
 print('=====Nto1 start=====')
 dst_dir = os.path.join(config.DATASET)
-dst_dir = os.path.join(dst_dir, 'GAF4ZS_noTrans')
+dst_dir = os.path.join(dst_dir, 'GAF4ZS')
 dst_dir = os.path.join(dst_dir,'f'+str(config.INTERVAL_LENGTH))
 src_dir = os.path.join(config.DATASET)
-src_dir = os.path.join(src_dir, 'GAFjpg3d_noTrans')
+src_dir = os.path.join(src_dir, 'GAFjpg3d')
 src_dir = os.path.join(src_dir,'f'+str(config.INTERVAL_LENGTH))
 for device in config.DEVICE_LIST:
     dst_device_path = os.path.join(dst_dir,device)
@@ -49,7 +49,7 @@ print('=====Nto1 finished=====')
 #===========================Seperate Train Test Set===================
 print('=====Seperate start=====')
 dst_dir = os.path.join(config.DATASET)
-dst_dir = os.path.join(dst_dir, 'GAF4ZS_noTrans')
+dst_dir = os.path.join(dst_dir, 'GAF4ZS')
 dst_dir = os.path.join(dst_dir, 'f' + str(config.INTERVAL_LENGTH))
 
 for device in config.DEVICE_LIST:

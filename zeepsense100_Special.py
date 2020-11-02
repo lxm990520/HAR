@@ -506,16 +506,13 @@ class ZeepSenseEasy():
 warnings.filterwarnings("ignore")
 #==============================Configuration===========================================
 config = Configuration()
-config.INTERVAL_LENGTH = 50
-config.WINDOW_LENGTH = 25
-config.DATASET = 'HAR'
-config.USER_LIST = [str(x) for x in range(1,31)]
-config.GT_LIST = ['Walking', 'Walking_upstairs', 'Walking_downstaris',
-                  'Sitting', 'Standing', 'Laying']
-config.EXP_LIST = [str(x) for x in range(1,62)]
-#config.SENSOR_LIST = ['Acc1', 'Gyro1']
-config.SENSOR_LIST = ['acc','gyro']
-config.DEVICE_LIST = ['SII']
+config.INTERVAL_LENGTH = 200
+config.WINDOW_LENGTH = 100
+config.DATASET = 'HHAR'
+config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
+config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
+config.SENSOR_LIST = ['acce','gyro']
+config.DEVICE_LIST = ['nexus41']
 
 config.fresh()
 config.save()

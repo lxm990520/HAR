@@ -98,27 +98,28 @@ def pic20to1(src_dir, dst_dir, pic_size,set_amount,dim):
 
 def picNto1(src_dir,dst_dir,config):
     filelist = os.listdir(src_dir)
-    for exp in config.EXP_LIST:
-        filelist_sameexp = [file for file in filelist if file.split('_')[1] == exp]
+    for user in config.USER_LIST:
+        filelist_sameuser = [file for file in filelist if file.split('_')[1] == user]
 
-        print(exp + ' start!')
+        print(user + ' start!')
         flag = False
-        for pic_index in range(len(filelist_sameexp)//config.INPUT_DIM - 10 + 1):
+        for pic_index in range(len(filelist_sameuser)//config.INPUT_DIM - 10 + 1):
             # 10 is a changable parameter
-            filelist_sameexpsensor = [file for file in filelist_sameexp if file.split('_')[-2] == config.SENSOR_LIST[0]]
-            filelist_sameexpsensor.sort(key=takeNumber)
-            if not takeNumber(filelist_sameexpsensor[pic_index + 9]) - takeNumber(
-                    filelist_sameexpsensor[pic_index]) == 9:  # 9 is a changable parameter
+            filelist_sameusersensor = [file for file in filelist_sameuser if file.split('_')[-2] == config.SENSOR_LIST[0]]
+            filelist_sameusersensor.sort(key=takeNumber)
+            if not takeNumber(filelist_sameusersensor[pic_index + 9]) - takeNumber(
+                    filelist_sameusersensor[pic_index]) == 9:  # 9 is a changable parameter
                 flag = False
+                print("An inconsecutive point found!")
                 continue
 
             if flag:
                 picNbase[:, : 9 * config.IMG_SIZE] = picNbase[:, 1 * config.IMG_SIZE:]
                 row = 0
                 for sensor in config.SENSOR_LIST:
-                    filelist_sameexpsensor = [file for file in filelist_sameexp if file.split('_')[-2] == sensor]
-                    filelist_sameexpsensor.sort(key=takeNumber)
-                    fig = cv2.imread(os.path.join(src_dir, filelist_sameexpsensor[pic_index + 9]))
+                    filelist_sameusersensor = [file for file in filelist_sameuser if file.split('_')[-2] == sensor]
+                    filelist_sameusersensor.sort(key=takeNumber)
+                    fig = cv2.imread(os.path.join(src_dir, filelist_sameusersensor[pic_index + 9]))
                     fig = cv2.resize(fig, (config.IMG_SIZE, config.IMG_SIZE))
                     picNbase[row * config.IMG_SIZE:(row + 1) * config.IMG_SIZE,
                     9 * config.IMG_SIZE:] = fig
@@ -127,20 +128,20 @@ def picNto1(src_dir,dst_dir,config):
                 picNbase = np.zeros([config.INPUT_DIM * config.IMG_SIZE, 10 * config.IMG_SIZE, 3])
                 row = 0
                 for sensor in config.SENSOR_LIST:
-                    filelist_sameexpsensor = [file for file in filelist_sameexp if file.split('_')[-2] == sensor]
-                    filelist_sameexpsensor.sort(key=takeNumber)
+                    filelist_sameusersensor = [file for file in filelist_sameuser if file.split('_')[-2] == sensor]
+                    filelist_sameusersensor.sort(key=takeNumber)
 
                     for figure_index in range(10):
                         # 10 is a changable parameter
                         # print(pic_index + figure_index)
-                        fig = cv2.imread(os.path.join(src_dir, filelist_sameexpsensor[pic_index + figure_index]))
+                        fig = cv2.imread(os.path.join(src_dir, filelist_sameusersensor[pic_index + figure_index]))
                         fig = cv2.resize(fig, (config.IMG_SIZE, config.IMG_SIZE))
                         picNbase[row * config.IMG_SIZE:(row + 1) * config.IMG_SIZE,
                         figure_index * config.IMG_SIZE:(figure_index + 1) * config.IMG_SIZE] = fig
                     row += 1
                 flag = True
 
-            template = filelist_sameexp[0].split('_')
+            template = filelist_sameuser[0].split('_')
             template.pop(-1)
             template.pop(-1)
             template.append(str(pic_index))
@@ -166,15 +167,13 @@ def moveTrainTest(dir,config):
     #             raise NameError("a file is in a wrong place " + os.path.join(root, filename))
     print(dir)
     for root, dirs, files in os.walk(os.path.join(dir,'train_halfoverlap')):
-
-        print(root)
-        if files is not None:
+        if len(files) is not 0:
 
             rootlist = root.split("\\")
             rootlist[-2] = "test_halfoverlap"
             if not os.path.exists(os.path.join(*rootlist)):
                 mkdir(os.path.join(*rootlist))
-            file_testuser = [file for file in files if file.split('_')[2] == config.TEST_USER]
+            file_testuser = [file for file in files if file.split('_')[1] == config.TEST_USER]
             for file in file_testuser:
                 shutil.move(os.path.join(root, file), os.path.join(*rootlist, file))
 
@@ -208,26 +207,23 @@ def is_valid_png(png_file):
 if __name__ == '__main__':
     from Configuration import Configuration
     config = Configuration()
-    config.INTERVAL_LENGTH = 50
-    config.WINDOW_LENGTH = 25
-    config.DATASET = 'HAR'
-    config.USER_LIST = [str(x) for x in range(1,31)]
-    config.GT_LIST = ['Walking', 'Walking_upstairs', 'Walking_downstaris',
-                      'Sitting', 'Standing', 'Laying']
-    config.EXP_LIST = [str(x) for x in range(1,62)]
-    #config.SENSOR_LIST = ['Acc1', 'Gyro1']
-    config.SENSOR_LIST = ['acc','gyro']
-    config.DEVICE_LIST = ['SII']
+    config.INTERVAL_LENGTH = 200
+    config.WINDOW_LENGTH = 100
+    config.DATASET = 'HHAR'
+    config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
+    config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
+    config.SENSOR_LIST = ['acce','gyro']
+    config.DEVICE_LIST = ['nexus41','nexus42','s3mini1','s3mini2']
 
-    config.TEST_USER = '1'
+    config.TEST_USER = 'a'
 
     config.fresh()
     print('=====Nto1 start=====')
     # dst_dir = os.path.join(config.DATASET)
-    # dst_dir = os.path.join(dst_dir, 'GAF4ZS_noTrans')
+    # dst_dir = os.path.join(dst_dir, 'GAF4ZS')
     # dst_dir = os.path.join(dst_dir,'f'+str(config.INTERVAL_LENGTH))
     # src_dir = os.path.join(config.DATASET)
-    # src_dir = os.path.join(src_dir, 'GAFjpg3d_noTrans')
+    # src_dir = os.path.join(src_dir, 'GAFjpg3d')
     # src_dir = os.path.join(src_dir,'f'+str(config.INTERVAL_LENGTH))
     # for device in config.DEVICE_LIST:
     #     dst_device_path = os.path.join(dst_dir,device)
@@ -246,11 +242,10 @@ if __name__ == '__main__':
 #=============================train2test function=======================
     print('=====Seperate start=====')
     dst_dir = os.path.join(config.DATASET)
-    dst_dir = os.path.join(dst_dir, 'GAF4ZS_noTrans')
+    dst_dir = os.path.join(dst_dir, 'GAF4ZS')
     dst_dir = os.path.join(dst_dir, 'f' + str(config.INTERVAL_LENGTH))
     for device in config.DEVICE_LIST:
         dst_device_path = os.path.join(dst_dir, device)
-        #print(dst_device_path)
         moveTrainTest(dst_device_path,config)
         print(device + ' finished!')
     print('=====Seperate finished=====')

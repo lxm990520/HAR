@@ -12,15 +12,18 @@ import os
 
 
 def GAF(threeD,config):
-    config.HEADER_LIST = ['Index', 'x', 'y', 'z']
-    src_dir = os.path.join(config.DATASET, 'Phonedata_noTrans')
+    src_dir = os.path.join(config.DATASET, 'Phonedata')
     for device in config.DEVICE_LIST:
         device_dir = os.path.join(src_dir,device)
         for user in config.USER_LIST:
-            user_dir = os.path.join(device_dir,'user' + user.zfill(2))
+            user_dir = os.path.join(device_dir,'user_' + user)
             for file in os.listdir(user_dir):
+                if not file.split('_')[-1].split('.')[0] in config.GT_LIST:#dont read file with all gestures
+                    continue
                 srcfile_path = os.path.join(user_dir, file)
-                data = pd.read_csv(srcfile_path, names = config.HEADER_LIST)
+                data = pd.read_csv(srcfile_path)
+                data = data.sort_values("Index")#in case Index is not consecutive
+                data.reset_index(drop=True, inplace=True)
                 I = np.ones([1, config.INTERVAL_LENGTH], float)
                 if threeD:
                     GASF_base = np.ones([config.INTERVAL_LENGTH, config.INTERVAL_LENGTH, 3], float)
@@ -29,7 +32,10 @@ def GAF(threeD,config):
                 GADF_base = np.ones([2 * config.INTERVAL_LENGTH, 2 * config.INTERVAL_LENGTH], float)
                 for i in range(data.shape[0]//config.WINDOW_LENGTH - 1):
                     if not (data['Index'].loc[(i * config.WINDOW_LENGTH) + config.INTERVAL_LENGTH - 1] - data['Index'].loc[i * config.WINDOW_LENGTH]) == (config.INTERVAL_LENGTH - 1):
-                        continue
+                        print("A inconsecutive point found!")
+                        print(srcfile_path)
+                        print((i * config.WINDOW_LENGTH) + config.INTERVAL_LENGTH - 1)
+                        continue# Prevent from data that is not consecutive
 
                     x = np.array(data['x'].loc[i * config.WINDOW_LENGTH:(i * config.WINDOW_LENGTH) + config.INTERVAL_LENGTH - 1])
                     y = np.array(data['y'].loc[i * config.WINDOW_LENGTH:(i * config.WINDOW_LENGTH) + config.INTERVAL_LENGTH - 1])
@@ -77,28 +83,28 @@ def GAF(threeD,config):
                         GASF_base[:, :, 1] = GASF_y
                         GASF_base[:, :, 2] = GASF_z
                         GASF_base = (GASF_base+1)*128
-                        gt = file.split('.')[0].split('_', 5)[-1]
-                        expId = file.split('_')[3]
+                        gt = file.split('.')[0].split('_')[-1]
                         sensor = file.split('_')[1]
-                        savepath = config.DATASET + '\\GAFjpg3d_noTrans\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
+                        device = ''.join([char for char in list(device) if not char == '_'])
+                        savepath = config.DATASET + '\\GAFjpg3d\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
                         if not os.path.exists(savepath):
                             mkdir(savepath)
                         GASF_resized = cv2.resize(GASF_base, (config.IMG_SIZE, config.IMG_SIZE))
-                        cv2.imwrite(savepath + '\\' + device + '_' + expId + '_' + user + '_' + gt + '_' + sensor + '_' + str(i) + '.jpg',
+                        cv2.imwrite(savepath + '\\' + device.strip('_') + '_' + user + '_' + gt + '_' + sensor + '_' + str(i) + '.jpg',
                                       GASF_resized)
                     else:
                         GASF_base[0:INTERVAL_LENGTH, 0:INTERVAL_LENGTH] = GASF_x
                         GASF_base[0:INTERVAL_LENGTH, INTERVAL_LENGTH:2 * INTERVAL_LENGTH] = GASF_y
                         GASF_base[INTERVAL_LENGTH:2 * INTERVAL_LENGTH, 0:INTERVAL_LENGTH] = GASF_z
                         GASF_base[INTERVAL_LENGTH:2 * INTERVAL_LENGTH, INTERVAL_LENGTH:2 * INTERVAL_LENGTH] = GASF_ab
-                        gt = file.split('.')[0].split('_',5)[-1]
-                        expId = file.split('_')[3]
+                        gt = file.split('.')[0].split('_')[-1]
                         sensor = file.split('_')[1]
-                        savepath = config.DATASET + '\\GAFjpg_noTrans\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
+                        device = ''.join([char for char in list(device) if not char == '_'])
+                        savepath = config.DATASET + '\\GAFjpg\\f' + str(config.INTERVAL_LENGTH) + '\\' + device + '\\' + 'train' + '\\' + gt
                         if not os.path.exists(savepath):
                             mkdir(savepath)
                         GASF_resized = cv2.resize(GASF_base, (config.IMG_SIZE, config.IMG_SIZE))
-                        cv2.imwrite(savepath + '\\' + device + '_' + expId + '_' + user + '_' + gt + '_' + sensor + '_' + str(i) + '.jpg',
+                        cv2.imwrite(savepath + '\\' + device.strip('_') + '_' + user + '_' + gt + '_' + sensor + '_' + str(i) + '.jpg',
                                       GASF_resized)
 
 
@@ -110,15 +116,15 @@ def GAF(threeD,config):
 if __name__ == '__main__':
     from Configuration import Configuration
     config = Configuration()
-    for interval in [50]:
+    for interval in [200]:
         config.INTERVAL_LENGTH = interval
         config.WINDOW_LENGTH = int(interval / 2)
-        config.DATASET = 'HAR'
-        config.USER_LIST = [str(x) for x in range(1,31)]
-        config.GT_LIST = ['Walking', 'Walking_upstairs', 'Walking_downstaris',
-                  'Sitting', 'Standing', 'Laying']
-        config.SENSOR_LIST = ['acc','gyro']
-        config.DEVICE_LIST = ['SII']
+        config.DATASET = 'HHAR'
+        config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
+        config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
+        config.SENSOR_LIST = ['acce','gyro']
+        config.DEVICE_LIST = ['nexus41', 'nexus42', 's3mini_1', 's3mini_2']
+        config.fresh()
         GAF(True,config)
 
 
