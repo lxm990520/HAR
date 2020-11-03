@@ -230,19 +230,6 @@ class ZeepSenseEasy():
         self.config = config
         gpus = tf.config.experimental.list_physical_devices('GPU')
         print(gpus)
-        #gpus = None
-        # if gpus:
-        #     # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
-        #     try:
-        #         tf.config.experimental.set_virtual_device_configuration(
-        #             gpus[0],
-        #             [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=10240)])
-        #         logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        #         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-        #     except RuntimeError as e:
-        #         # Virtual devices must be set before GPUs have been initialized
-        #         print(e)
-
         self.single_img_length = 200
 
         self.single_input = keras.Input(shape=(self.config.INPUT_DIM * self.single_img_length, 10 * self.single_img_length, 3), \
@@ -272,96 +259,6 @@ class ZeepSenseEasy():
 #======================================================Output==============================================
             self.sensor_output[sensor] = Reshape((10, 1, 16*16, self.conv1[sensor].shape[-1]), name="output_" + self.config.SENSOR_LIST[sensor])(self.conv2[sensor])#attention here, maybe errorous
 #==========================================================================================================
-        # self.acce_input = self.single_input[:, 0:self.single_img_length, :, :]
-        # self.gyro_input = self.single_input[:, self.single_img_length:, :, :]
-        # self.acce_input = Reshape((10, self.single_img_length, self.single_img_length, 3), name="Input_acce")(
-        #     self.acce_input)
-        # self.gyro_input = Reshape((10, self.single_img_length, self.single_img_length, 3), name="Input_gyro")(
-        #     self.gyro_input)
-        # acc_input_dim = self.acce_input.get_shape()
-        # print(acc_input_dim)
-        # gyro_input_dim = self.gyro_input.get_shape()
-        # print(gyro_input_dim)
-        # self.conv1a = Conv3D(64, (1, 5, 5), (1, 3, 3),
-        #                             name="conv_acce_1",
-        #                             kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
-        #                             )(self.acce_input)
-        # self.conv1a = self.acce_input
-        # self.conv1a = BatchNormalization(name="conv_acce_1_batchnorm")(self.conv1a)
-        # self.conv1a = Activation("relu", name="conv_acce_1_relu")(self.conv1a)
-        # self.conv1a = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv1a.shape[-1]], name="conv_acce_1_dropout")(
-        #     self.conv1a)
-        # self.conv1a = AveragePooling3D((1, 2, 2),name="conv_acce_1_pool")(self.conv1a)
-        # acc_conv1a_dim = self.conv1a.get_shape()
-        # print(acc_conv1a_dim)
-
-        # self.conv2a = Conv3D(64, (1, 3, 3), (1, 1, 1),
-        #                             name="conv_acce_2",
-        #                             padding="SAME",
-        #                             kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
-        #                             )(self.conv1a)
-        # self.conv2a = BatchNormalization(name="conv_acce_2_batchnorm")(self.conv2a)
-        # self.conv2a = Activation("relu", name="conv_acce_2_relu")(self.conv2a)
-        # self.conv2a = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv1a.shape[-1]], name="conv_acce_2_dropout")(
-        #     self.conv2a)
-        # self.conv2a = AveragePooling3D((1, 2, 2), name="conv_acce_2_pool")(self.conv1a)
-        # self.conv3a = Conv3D(64, (1, 3, 3), (1, 2, 2),
-        #                             name="conv_acce_3",
-        #                             kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
-        #                             )(self.conv2a)
-        # # self.conv3a = BatchNormalization(name="conv_acce_3_batchnorm")(self.conv3a)
-        # self.conv3a = Activation("relu", name="conv_acce_3_relu")(self.conv3a)
-        # self.conv3a = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, 64], name="conv_acce_3_dropout")(
-        #     self.conv3a)
-        # acc_conv2a_dim = self.conv2a.get_shape()
-        # print(acc_conv2a_dim)
-
-        # self.acce_output = Reshape((10, 1, 16*16, self.conv1a.shape[-1]), name="output_acce")(self.conv2a)
-        # self.acce_output = self.conv3a
-        # self.acce_output = AveragePooling3D((1,3,3),(1,2,2))(self.conv3a)
-        # self.acce_output = Reshape((10,1,10*10,64),name="output_acce")(self.acce_output)
-        # **********************************************************************************************
-        # acc_output_dim = self.acce_output.get_shape()
-        # print(acc_output_dim)
-        # self.conv1g = Conv3D(64, (1, 5, 5), (1, 3, 3),
-        #                             name="conv_gyro_1",
-        #                             kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
-        #                             )(self.gyro_input)
-        # # self.conv1g = self.gyro_input
-        # # self.conv1g = BatchNormalization(name="conv_gyro_1_batchnorm")(self.conv1g)
-        # self.conv1g = Activation("relu", name="conv_gyro_1_relu")(self.conv1g)
-        # self.conv1g = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv1g.shape[-1]], name="conv_gyro_1_dropout")(
-        #     self.conv1g)
-        # self.conv1g = AveragePooling3D((1, 2, 2), name="conv_gyro_1_pool")(self.conv1g)
-        # gyro_conv1g_dim = self.conv1g.get_shape()
-        # print(gyro_conv1g_dim)
-        # self.conv2g = Conv3D(64, (1, 3, 3), (1, 1, 1),
-        #                             name="conv_gyro_2",
-        #                             padding="SAME",
-        #                             kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
-        #                             )(self.conv1g)
-        # # self.conv2g = BatchNormalization(name="conv_gyro_2_batchnorm")(self.conv2g)
-        # self.conv2g = Activation("relu", name="conv_gyro_2_relu")(self.conv2g)
-        # self.conv2g = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv2g.shape[-1]],
-        #                       name="conv_gyro_2_dropout")(self.conv2g)
-        # self.conv2g = AveragePooling3D((1, 2, 2), name="conv_gyro_2_pool")(self.conv1g)
-        # # self.conv3g = Conv3D(64, (1, 3, 3), (1, 2, 2),
-        # #                             name="conv_gyro_3",
-        # #                             kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
-        # #                             )(self.conv2g)
-        # # # self.conv3g = BatchNormalization(name="conv_gyro_3_batchnorm")(self.conv3g)
-        # # self.conv3g = Activation("relu", name="conv_gyro_3_relu")(self.conv3g)
-        # # self.conv3g = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, 64], name="conv_gyro_3_dropout")(
-        # #     self.conv3g)
-        # gyro_conv2g_dim = self.conv2g.get_shape()
-        # print(gyro_conv2g_dim)
-        # self.gyro_output = Reshape((10, 1, 16*16, self.conv1g.shape[-1]), name="output_gyro")(self.conv2g)
-        # self.gyro_output = self.conv3g
-        # self.gyro_output = AveragePooling3D((1,3,3),(1,2,2))(self.conv3g)
-        # self.gyro_output = Reshape((10,1,10*10,64),name="output_gyro")(self.gyro_output)
-        # ***********************************************************************************************************************
-        # gyro_output_dim = self.gyro_output.get_shape()
-        # print(gyro_output_dim)
 #===========================================Merge Input=============================
 #============================no attention===========================================
         self.merge_noattention = concatenate(self.sensor_output,axis = -3, name = "input_merge")
@@ -435,10 +332,10 @@ class ZeepSenseEasy():
         self.conv_output = self.conv1
         self.rnn_input = Reshape((10, self.conv_output.shape[-1] * self.conv_output.shape[-2] * self.conv_output.shape[-3]), name="Output_merge")(self.conv_output)
 
-        self.rnn = LSTM(120, return_sequences=True, name="RNN_1")(self.rnn_input)
+        self.rnn = LSTM(120, return_sequences=True, name="RNN_1", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn_input)
         self.sum_rnn_out = tf.reduce_sum(self.rnn, axis=1, keep_dims=False)
-        self.rnn = LSTM(20, name="RNN_2")(self.rnn)
-        self.rnn_output = Dense(self.config.OUTPUT_DIM, 'softmax', name="Softmax")(self.rnn)
+        self.rnn = LSTM(20, name="RNN_2", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn)
+        self.rnn_output = Dense(self.config.OUTPUT_DIM, 'softmax',kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE), name="Softmax")(self.rnn)
 
         self.model = keras.Model(
             inputs=self.single_input,
@@ -477,8 +374,8 @@ class ZeepSenseEasy():
         Y_pred = self.model.predict(val_data)
         y_pred = np.argmax(Y_pred, axis=1)
         y_true = val_data_init.raw_labels[0:len(y_pred) // BATCH_SIZE * BATCH_SIZE]
-        print("y_ture in confusion matrix.")
-        print(y_true)
+        print("y_pred in confusion matrix.")
+        print(y_pred)
         output_matrix = confusion_matrix(y_true, y_pred) #/ (len(y_true))
         cm_dir = os.path.join(save_dir,'CM.jpg')
         util.plot_confusion_matrix(output_matrix, self.config.GT_LIST,"Normalized Confusion Matrix",cm_dir)
