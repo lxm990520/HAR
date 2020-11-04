@@ -10,6 +10,7 @@ class Configuration:
         print('EDGE_LEN : ' + str(self.EDGE_LEN))
         print('IMG_SIZE : ' + str(self.IMG_SIZE))
         print('TIME_STEPS : ' + str(self.TIME_STEPS))
+        print('LEARNING_RATE : ' + str(self.LEARNING_RATE))
         print('=============Dataset Configuration============')
         print('DATASET : ' + str(self.DATASET))
         print('USER_LIST : ' + str(self.USER_LIST))
@@ -25,6 +26,7 @@ class Configuration:
             r.write('\nEDGE_LEN : ' + str(self.EDGE_LEN))
             r.write('\nIMG_SIZE : ' + str(self.IMG_SIZE))
             r.write('\nTIME_STEPS : ' + str(self.TIME_STEPS))
+            r.write('\nLEARNING_RATE : ' + str(self.LEARNING_RATE))
             r.write('\n=============Dataset Configuration============')
             r.write('\nDATASET : ' + str(self.DATASET))
             r.write('\nUSER_LIST : ' + str(self.USER_LIST))
@@ -38,6 +40,7 @@ class Configuration:
         self.EDGE_LEN = 100
         self.IMG_SIZE = 200
         self.TIME_STEPS = 10
+        self.LEARNING_RATE = 0.0001
         self.DATASET = 'HHAR'
         self.USER_LIST = ['a','b','c','d','e','f','g','h','i']
         self.SENSOR_LIST = ['acce','gyro']

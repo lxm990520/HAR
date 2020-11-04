@@ -20,7 +20,7 @@ DROPOUT_RATIO = 0.3
 REGULARIZER_RATE = 0.005
 BUFFER_SIZE = 2000
 
-BATCH_SIZE = 16  # 64
+BATCH_SIZE = 64  # 64
 TOTAL_ITER_NUM = 30000  # 0000
 
 
@@ -128,7 +128,7 @@ class Tfdata():
 
         image = tf.image.decode_jpeg(image)
         image = tf.image.convert_image_dtype(image, tf.float32)
-        image = tf.image.resize(image, [200 * self.config.INPUT_DIM, 200 * 10])#10 is a changable parameter
+        image = tf.image.resize(image, [self.config.IMG_SIZE * self.config.INPUT_DIM, self.config.IMG_SIZE * 10])#10 is a changable parameter
 
         # label = tf.one_hot(label, OUT_DIM)
         return image, label
@@ -164,7 +164,6 @@ class LossHistory(keras.callbacks.Callback):
         self.val_loss['epoch'].append(logs.get('val_loss'))
         self.val_acc['epoch'].append(logs.get('val_acc'))
         save_dir = self.save_dir
-#==============================================================================================
 #========================================Plot Accuracy Figure==================================
         acc_dir = os.path.join(self.save_dir,'Accuracy.jpg')
         loss_type = 'epoch'
@@ -189,18 +188,44 @@ class LossHistory(keras.callbacks.Callback):
         plt.savefig(loss_dir)
         plt.close(1)
 #==============================================================================================
+# ==============================Model Save Weight========================================
+        weight_name = 'zs_halfoverlap.h5'
+        weight_dir = os.path.join(self.save_dir, weight_name)
+        self.model.save_weights(weight_dir)
+
+# =======================================================================================
+
     def on_train_end(self, batch, logs={}):
         loss_type = 'epoch'
         iters = range(len(self.losses[loss_type]))
 #=======================================Record Accuracy========================================
         txt_dir = os.path.join(self.save_dir,'Accuracy_record.txt')
         with open(txt_dir, "a") as r:
-            r.write("\n*********************************************************************************\n\n\n")
-            r.write("\nhere is the accuracy of validation:\n")
-            r.write("\nthis is no merge version\n")
+            r.write("*********************************************************************************\n")
+            r.write("here is the accuracy of validation:\n")
+            r.write("this is no merge version\n")
             r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
             for i in range(len(self.val_acc[loss_type])):
                 r.write("{}\n".format(str(self.val_acc[loss_type][i])))
+            r.write("*********************************************************************************\n")
+            r.write("here is the loss of validation :\n")
+            r.write("this is no merge version\n")
+            r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
+            for i in range(len(self.val_loss[loss_type])):
+                r.write("{}\n".format(str(self.val_loss[loss_type][i])))
+            r.write("*********************************************************************************\n")
+            r.write("here is the accuracy of training:\n")
+            r.write("this is no merge version\n")
+            r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
+            for i in range(len(self.accuracy[loss_type])):
+                r.write("{}\n".format(str(self.accuracy[loss_type][i])))
+            r.write("*********************************************************************************\n")
+            r.write("here is the loss of validation:\n")
+            r.write("this is no merge version\n")
+            r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
+            for i in range(len(self.losses[loss_type])):
+                r.write("{}\n".format(str(self.losses[loss_type][i])))
+
 #==============================================================================================
 #========================================Plot Loss Figure======================================
         loss_dir = os.path.join(self.save_dir, 'Loss.jpg')
@@ -289,7 +314,7 @@ class ZeepSenseEasy():
                                    )(self.merge_input)
         # self.conv1 = BatchNormalization(name="conv_merge_1_batchnorm")(self.conv1)
         self.conv1 = Activation("relu", name="conv_merge_1_relu")(self.conv1)
-        self.conv1 = Dropout(0.2, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv1.shape[-1]],
+        self.conv1 = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv1.shape[-1]],
                              name="conv_merge_1_dropout")(self.conv1)
         self.conv1 = AveragePooling3D((1, 1,3))(self.conv1)
 #========================================Merge Conv2==================================
@@ -341,9 +366,9 @@ class ZeepSenseEasy():
             inputs=self.single_input,
             outputs=self.rnn_output)
 
-    def train(self, file_dir, val_dir, epochs, save_dir=None):
+    def train(self, file_dir, val_dir, epochs, save_dir=None, load_dir = None):
 
-        self.model.compile(optimizer=keras.optimizers.Adam(),
+        self.model.compile(optimizer=keras.optimizers.Adam(lr = self.config.LEARNING_RATE),
                            loss=keras.losses.SparseCategoricalCrossentropy(),
                            metrics=['acc'])
 
@@ -357,13 +382,22 @@ class ZeepSenseEasy():
 
         self.history = LossHistory(self.config)
 
+#=======================================Model Load Weight=======================================
+        if not load_dir == None:
+            load_weight_dir = os.path.join(load_dir,"zs_halfoverlap.h5")
+            self.model.load_weights(load_weight_dir)
+#===============================================================================================
+
         self.model.fit(data,
                        epochs=epochs,
                        verbose=2,
                        validation_data=val_data,
                        callbacks=[self.history])
-
-        # self.model.save(save_dir)
+#==============================Model Save Weight========================================
+        weight_name = 'zs_halfoverlap.h5'
+        weight_dir = os.path.join(config.SAVE_DIR, weight_name)
+        self.model.save_weights(weight_dir)
+#=======================================================================================
 
     def evaluate(self, val_dir, save_dir):
         val_data_init = Tfdata(val_dir,self.config)
@@ -371,11 +405,14 @@ class ZeepSenseEasy():
         print("y_true in evaluation")
         print(val_data_init.raw_labels)
 
+
+
         Y_pred = self.model.predict(val_data)
         y_pred = np.argmax(Y_pred, axis=1)
+
         y_true = val_data_init.raw_labels[0:len(y_pred) // BATCH_SIZE * BATCH_SIZE]
         print("y_pred in confusion matrix.")
-        print(y_pred)
+        print(y_pred.tolist())
         output_matrix = confusion_matrix(y_true, y_pred) #/ (len(y_true))
         cm_dir = os.path.join(save_dir,'CM.jpg')
         util.plot_confusion_matrix(output_matrix, self.config.GT_LIST,"Normalized Confusion Matrix",cm_dir)
@@ -405,6 +442,7 @@ warnings.filterwarnings("ignore")
 config = Configuration()
 config.INTERVAL_LENGTH = 200
 config.WINDOW_LENGTH = 100
+config.LEARNING_RATE = 0.0001
 config.DATASET = 'HHAR'
 config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
 config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
@@ -419,10 +457,9 @@ example.model.summary()
 train_dir = os.path.join(config.DATASET_DIR, 'train_halfoverlap')
 test_dir = os.path.join(config.DATASET_DIR, 'test_halfoverlap')
 val_dir = os.path.join(config.DATASET_DIR, 'test_halfoverlap')#to swap test to val
-h5_dir_list = [config.DATASET,'GAF4ZS','f' + str(config.INTERVAL_LENGTH), 'zs_original.h5']
-h5_name = 'zs_halfoverlap.h5'
-h5_dir = os.path.join(config.SAVE_DIR, h5_name)
+
+load_dir = "HHAR\\Result\\f200\\nexus41\\11-04-12-41"
 example.train(train_dir,
               test_dir,
-              epochs=100, save_dir=h5_dir)
+              epochs=139, save_dir= config.SAVE_DIR, load_dir = load_dir)
 example.evaluate(val_dir,config.SAVE_DIR)
