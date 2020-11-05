@@ -6,7 +6,7 @@ import time
 import numpy as np
 from tensorflow import keras
 from tensorflow.keras.layers import AveragePooling3D,Reshape,Conv3D,Conv2D,AveragePooling2D,Dropout,\
-    MaxPool3D,concatenate,LSTM,Bidirectional,Dense,Activation,RNN,GRU,Softmax
+    MaxPool3D,concatenate,LSTM,Bidirectional,Dense,Activation,RNN,GRU,Softmax,BatchNormalization
 # import process4ZS as process
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
@@ -20,8 +20,26 @@ DROPOUT_RATIO = 0.3
 REGULARIZER_RATE = 0.005
 BUFFER_SIZE = 2000
 
-BATCH_SIZE = 64  # 64
 TOTAL_ITER_NUM = 30000  # 0000
+
+
+warnings.filterwarnings("ignore")
+#==============================Configuration===========================================
+config = Configuration()
+config.INTERVAL_LENGTH = 200
+config.WINDOW_LENGTH = 100
+config.LEARNING_RATE = 0.001
+config.BATCH_SIZE = 32
+config.DATASET = 'HHAR'
+config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
+config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
+config.SENSOR_LIST = ['acce','gyro']
+config.DEVICE_LIST = ['nexus41']
+config.LOAD_DIR = None
+config.fresh()
+config.save()
+
+
 
 
 class Tfdata():
@@ -144,7 +162,7 @@ class Tfdata():
         img_data = img_data.map(self.read_image)
         # if is_shuffle:
         #   img_data = img_data.shuffle(BUFFER_SIZE)
-        img_data = img_data.batch(BATCH_SIZE, drop_remainder=True)
+        img_data = img_data.batch(self.config.BATCH_SIZE, drop_remainder=True)
 
         return img_data
 
@@ -270,16 +288,18 @@ class ZeepSenseEasy():
             self.conv1[sensor] = Conv3D(64, (1, 5, 5), (1, 3, 3),
                                         name="conv_" + self.config.SENSOR_LIST[sensor] + "_1",
                                         kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.sensor_input[sensor])
+            self.conv1[sensor] = BatchNormalization(name = "conv_" + self.config.SENSOR_LIST[sensor] + "_1_bn")(self.conv1[sensor])
             self.conv1[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_relu")(self.conv1[sensor])
-            self.conv1[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv1[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_dropout")(self.conv1[sensor])
+            self.conv1[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, 1, self.conv1[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_dropout")(self.conv1[sensor])
             self.conv1[sensor] = AveragePooling3D((1, 2, 2),name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_pool")(self.conv1[sensor])  
 #=======================================================Conv2==============================================
             self.conv2[sensor] = Conv3D(64, (1, 3, 3), (1, 1, 1),
                                         name="conv_" + self.config.SENSOR_LIST[sensor] + "_2",
                                         padding="SAME",
                                         kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.conv1[sensor])
+            self.conv2[sensor] = BatchNormalization(name = "conv_" + self.config.SENSOR_LIST[sensor] + "_2_bn")(self.conv2[sensor])
             self.conv2[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_relu")(self.conv2[sensor])
-            self.conv2[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv2[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_dropout")(self.conv2[sensor])
+            self.conv2[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, 1, self.conv2[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_dropout")(self.conv2[sensor])
             self.conv2[sensor] = AveragePooling3D((1, 2, 2), name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_pool")(self.conv2[sensor])
 #======================================================Output==============================================
             self.sensor_output[sensor] = Reshape((10, 1, 16*16, self.conv1[sensor].shape[-1]), name="output_" + self.config.SENSOR_LIST[sensor])(self.conv2[sensor])#attention here, maybe errorous
@@ -312,9 +332,9 @@ class ZeepSenseEasy():
                                    # padding='SAME',
                                    kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
                                    )(self.merge_input)
-        # self.conv1 = BatchNormalization(name="conv_merge_1_batchnorm")(self.conv1)
+        self.conv1 = BatchNormalization(name="conv_merge_1_bn")(self.conv1)
         self.conv1 = Activation("relu", name="conv_merge_1_relu")(self.conv1)
-        self.conv1 = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, self.conv1.shape[-1]],
+        self.conv1 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, 1, self.conv1.shape[-1]],
                              name="conv_merge_1_dropout")(self.conv1)
         self.conv1 = AveragePooling3D((1, 1,3))(self.conv1)
 #========================================Merge Conv2==================================
@@ -434,32 +454,18 @@ class ZeepSenseEasy():
         f2 = metrics.f1_score(y_true, y_pred, average='macro')
         print('micro f1 score: {}, macro f1 score:{}'.format(f1,f2))
 
-
-
-
-warnings.filterwarnings("ignore")
-#==============================Configuration===========================================
-config = Configuration()
-config.INTERVAL_LENGTH = 200
-config.WINDOW_LENGTH = 100
-config.LEARNING_RATE = 0.0001
-config.DATASET = 'HHAR'
-config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
-config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
-config.SENSOR_LIST = ['acce','gyro']
-config.DEVICE_LIST = ['nexus41']
-
-config.fresh()
-config.save()
-#=====================================================================================
+#================================Run the Model=========================================
 example = ZeepSenseEasy(config)
 example.model.summary()
 train_dir = os.path.join(config.DATASET_DIR, 'train_halfoverlap')
 test_dir = os.path.join(config.DATASET_DIR, 'test_halfoverlap')
 val_dir = os.path.join(config.DATASET_DIR, 'test_halfoverlap')#to swap test to val
 
-load_dir = "HHAR\\Result\\f200\\nexus41\\11-04-12-41"
+
 example.train(train_dir,
               test_dir,
-              epochs=139, save_dir= config.SAVE_DIR, load_dir = load_dir)
+              epochs=139, save_dir= config.SAVE_DIR, load_dir = config.LOAD_DIR)
 example.evaluate(val_dir,config.SAVE_DIR)
+
+
+
