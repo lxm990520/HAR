@@ -11,6 +11,7 @@ class Configuration:
         print('IMG_SIZE : ' + str(self.IMG_SIZE))
         print('TIME_STEPS : ' + str(self.TIME_STEPS))
         print('LEARNING_RATE : ' + str(self.LEARNING_RATE))
+        print('DECAY : ' + str(self.DECAY))
         print('BATCH_SIZE : ' + str(self.BATCH_SIZE))
         print('=============Dataset Configuration============')
         print('DATASET : ' + str(self.DATASET))
@@ -30,6 +31,7 @@ class Configuration:
             r.write('\nIMG_SIZE : ' + str(self.IMG_SIZE))
             r.write('\nTIME_STEPS : ' + str(self.TIME_STEPS))
             r.write('\nLEARNING_RATE : ' + str(self.LEARNING_RATE))
+            r.write('\nDECAY : ' + str(self.DECAY))
             r.write('\nBATCH_SIZE : ' + str(self.BATCH_SIZE))
             r.write('\n=============Dataset Configuration============')
             r.write('\nDATASET : ' + str(self.DATASET))
@@ -47,6 +49,7 @@ class Configuration:
         self.IMG_SIZE = 200
         self.TIME_STEPS = 10
         self.LEARNING_RATE = 0.0001
+        self.DECAY = 0
         self.BATCH_SIZE = 128
         self.LOAD_DIR = None
         self.DATASET = 'HHAR'
@@ -62,7 +65,7 @@ class Configuration:
         self.OUTPUT_DIM = len(self.GT_LIST)
         dir_list = [self.DATASET, 'GAF4ZS', 'f' + str(self.INTERVAL_LENGTH), self.DEVICE_LIST[0]]
         self.DATASET_DIR = os.path.join(*dir_list)
-        self.VERSION = time.strftime("%m-%d-%I-%M")
+        self.VERSION = time.strftime("%m-%d-%H-%M")
 
 
     def save(self):

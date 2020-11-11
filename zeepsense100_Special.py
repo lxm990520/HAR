@@ -4,20 +4,26 @@ import os
 import cv2
 import time
 import numpy as np
+#==================Use CPU to train==================
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#====================================================
 from tensorflow import keras
 from tensorflow.keras.layers import AveragePooling3D,Reshape,Conv3D,Conv2D,AveragePooling2D,Dropout,\
     MaxPool3D,concatenate,LSTM,Bidirectional,Dense,Activation,RNN,GRU,Softmax,BatchNormalization
 # import process4ZS as process
+from keras.callbacks import ReduceLROnPlateau
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn import metrics
 from Configuration import Configuration
 import util
+import csv
 
 SEPCTURAL_SAMPLES = 10  # d(k), dimension for each measurement(e.g. x,y,z...)
 WIDE = 10  # 20       #amount of time intervals
 DROPOUT_RATIO = 0.3
-REGULARIZER_RATE = 0.005
+REGULARIZER_RATE = 0.001
 BUFFER_SIZE = 2000
 
 TOTAL_ITER_NUM = 30000  # 0000
@@ -28,15 +34,16 @@ warnings.filterwarnings("ignore")
 config = Configuration()
 config.INTERVAL_LENGTH = 200
 config.WINDOW_LENGTH = 100
-config.LEARNING_RATE = 0.001
-config.BATCH_SIZE = 32
+config.LEARNING_RATE = 0.0001
+config.BATCH_SIZE = 64
+config.DECAY = 0
 config.DATASET = 'HHAR'
 config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
 config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
 config.SENSOR_LIST = ['acce','gyro']
 config.DEVICE_LIST = ['nexus41']
-#config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-05-06-08'
-config.LOAD_DIR = None
+config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-10-11-42'
+#config.LOAD_DIR = None
 config.fresh()
 config.save()
 
@@ -62,8 +69,6 @@ class Tfdata():
                 images.append(os.path.join(root, name))
             for name in sub_folders:
                 temp.append(os.path.join(root, name))
-            #print(len(files))
-            #print(sub_folders)
 
         labels = []
         for one_folder in temp:  # temp is a list of subfolders
@@ -129,7 +134,7 @@ class Tfdata():
 
         temp = np.array([images, labels])
         temp = temp.transpose()  # transpose to a n_img*2 array, so that each match has 2 elements: image&label
-        np.random.shuffle(temp)
+        #np.random.shuffle(temp)
 
         # image_list = list(temp[1])
         # label_list = list(temp[0])
@@ -161,8 +166,8 @@ class Tfdata():
 
         img_data = tf.data.Dataset.from_tensor_slices((self.raw_images, self.raw_labels))
         img_data = img_data.map(self.read_image)
-        # if is_shuffle:
-        #   img_data = img_data.shuffle(BUFFER_SIZE)
+        if is_shuffle:
+           img_data = img_data.shuffle(BUFFER_SIZE)
         img_data = img_data.batch(self.config.BATCH_SIZE, drop_remainder=True)
 
         return img_data
@@ -183,6 +188,20 @@ class LossHistory(keras.callbacks.Callback):
         self.val_loss['epoch'].append(logs.get('val_loss'))
         self.val_acc['epoch'].append(logs.get('val_acc'))
         save_dir = self.save_dir
+#========================================Record Accuracy and Loss==============================
+        record_dir = os.path.join(self.save_dir,'Temp_record.csv')
+
+        record = [str(len(self.losses['epoch'])), logs.get('loss'), logs.get('acc'), logs.get('val_loss'), logs.get('val_acc')]
+        if os.path.isfile(record_dir):
+            with open(record_dir, 'a', newline='')as f:
+                writer = csv.writer(f, dialect='excel')
+                writer.writerow(record)
+        else:
+            with open(record_dir, 'w', newline='')as f:
+                writer = csv.writer(f, dialect='excel')
+                writer.writerow(['Epoch', 'Train_loss', 'Train_acc', 'Val_loss', 'Val_acc'])
+                writer.writerow(record)
+#==============================================================================================
 #========================================Plot Accuracy Figure==================================
         acc_dir = os.path.join(self.save_dir,'Accuracy.jpg')
         loss_type = 'epoch'
@@ -403,12 +422,12 @@ class ZeepSenseEasy():
 
     def train(self, file_dir, val_dir, epochs, save_dir=None, load_dir = None):
 
-        self.model.compile(optimizer=keras.optimizers.Adam(lr = self.config.LEARNING_RATE),
+        self.model.compile(optimizer=keras.optimizers.Adam(lr = self.config.LEARNING_RATE, decay = self.config.DECAY),
                            loss=keras.losses.SparseCategoricalCrossentropy(),
                            metrics=['acc'])
 
         data_init = Tfdata(file_dir,self.config)
-        data = data_init.acquire_data()
+        data = data_init.acquire_data(True)
 
         val_data_init = Tfdata(val_dir,self.config)
         val_data = val_data_init.acquire_data(False)
@@ -422,12 +441,14 @@ class ZeepSenseEasy():
             load_weight_dir = os.path.join(load_dir,"zs_halfoverlap.h5")
             self.model.load_weights(load_weight_dir)
 #===============================================================================================
-
+        reduce_lr = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.5,
+                                      patience = 10, mode = 'auto',
+                                      epsilon = 0.0001)
         self.model.fit(data,
                        epochs=epochs,
                        verbose=2,
                        validation_data=val_data,
-                       callbacks=[self.history])
+                       callbacks=[self.history, reduce_lr])
 #==============================Model Save Weight========================================
         weight_name = 'zs_halfoverlap.h5'
         weight_dir = os.path.join(config.SAVE_DIR, weight_name)
