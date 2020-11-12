@@ -4,9 +4,17 @@ import os
 import cv2
 import time
 import numpy as np
+#==================Mask the Message==================
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+#====================================================
 #==================Use CPU to train==================
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#====================================================
+#==================Timeline Analysis=================
+#from tensorflow.python.client import timeline
+#from keras import callbacks
 #====================================================
 from tensorflow import keras
 from tensorflow.keras.layers import AveragePooling3D,Reshape,Conv3D,Conv2D,AveragePooling2D,Dropout,\
@@ -22,7 +30,7 @@ import csv
 
 SEPCTURAL_SAMPLES = 10  # d(k), dimension for each measurement(e.g. x,y,z...)
 WIDE = 10  # 20       #amount of time intervals
-DROPOUT_RATIO = 0.3
+DROPOUT_RATIO = 0.5
 REGULARIZER_RATE = 0.0001
 BUFFER_SIZE = 200
 
@@ -34,7 +42,7 @@ warnings.filterwarnings("ignore")
 config = Configuration()
 config.INTERVAL_LENGTH = 200
 config.WINDOW_LENGTH = 100
-config.LEARNING_RATE = 0.001
+config.LEARNING_RATE = 0.01
 config.BATCH_SIZE = 64
 config.DECAY = 0
 config.DATASET = 'HHAR'
@@ -42,8 +50,8 @@ config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
 config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
 config.SENSOR_LIST = ['acce','gyro']
 config.DEVICE_LIST = ['nexus41']
-config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-10-11-42'
-#config.LOAD_DIR = None
+#config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-10-11-42'
+config.LOAD_DIR = None
 config.fresh()
 config.save()
 
@@ -153,7 +161,8 @@ class Tfdata():
         image = tf.image.decode_jpeg(image)
         image = tf.image.convert_image_dtype(image, tf.float32)
         image = tf.image.resize(image, [self.config.IMG_SIZE * self.config.INPUT_DIM, self.config.IMG_SIZE * 10])#10 is a changable parameter
-
+        image = image / 127.5 - 1.0#map image to [-1,1]
+        #image = tf.image.per_image_standardization(image)#image standardization
         # label = tf.one_hot(label, OUT_DIM)
         return image, label
 
@@ -163,7 +172,6 @@ class Tfdata():
         #print(self.raw_images)
         #print(self.raw_labels)
         print("data amount:{}".format(len(self.raw_labels)))
-
         img_data = tf.data.Dataset.from_tensor_slices((self.raw_images, self.raw_labels))
         img_data = img_data.map(self.read_image)
         if is_shuffle:
@@ -312,7 +320,7 @@ class ZeepSenseEasy():
             self.conv1[sensor] = BatchNormalization(name = "conv_" + self.config.SENSOR_LIST[sensor] + "_1_bn")(self.conv1[sensor])
             self.conv1[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_relu")(self.conv1[sensor])
             self.conv1[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, 1, self.conv1[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_dropout")(self.conv1[sensor])
-            self.conv1[sensor] = AveragePooling3D((1, 2, 2),name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_pool")(self.conv1[sensor])  
+            self.conv1[sensor] = AveragePooling3D((1, 2, 2),name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_pool")(self.conv1[sensor])
 #=======================================================Conv2==============================================
             self.conv2[sensor] = Conv3D(64, (1, 3, 3), (1, 1, 1),
                                         name="conv_" + self.config.SENSOR_LIST[sensor] + "_2",
@@ -367,7 +375,7 @@ class ZeepSenseEasy():
         self.merge_conv1 = Activation("relu", name="conv_merge_1_relu")(self.merge_conv1)
         self.merge_conv1 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, 1, self.merge_conv1.shape[-1]],
                              name="conv_merge_1_dropout")(self.merge_conv1)
-        # self.merge_conv1 = AveragePooling3D((1, 1,3))(self.merge_conv1)
+        self.merge_conv1 = AveragePooling3D((1, 1,2))(self.merge_conv1)
 #========================================Merge Conv2==================================
         self.merge_conv2 = Conv3D(64, kernel_size=(1,2,6),
                                    name='conv_merge_2',
@@ -379,7 +387,7 @@ class ZeepSenseEasy():
         self.merge_conv2 = Activation("relu", name="conv_merge_2_relu")(self.merge_conv2)
         self.merge_conv2 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, 1, self.merge_conv2.shape[-1]],
                              name="conv_merge_2_dropout")(self.merge_conv2)
-        # self.merge_conv2 = AveragePooling3D((1, 1,3))(self.conv2)
+        self.merge_conv2 = AveragePooling3D((1, 1,2))(self.merge_conv2)
 #=====================================================================================
 #========================================Merge Conv3==================================
         self.merge_conv3 = Conv3D(64, kernel_size=(1,2,4),
@@ -392,7 +400,7 @@ class ZeepSenseEasy():
         self.merge_conv3 = Activation("relu", name="conv_merge_3_relu")(self.merge_conv3)
         self.merge_conv3 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, 1, self.merge_conv3.shape[-1]],
                              name="conv_merge_3_dropout")(self.merge_conv3)
-        # self.conv3 = AveragePooling3D((1, 1,3))(self.conv3)
+        self.merge_conv3 = AveragePooling3D((1, 1,2))(self.merge_conv3)
 #=====================================================================================
         # self.conv2 = Conv3D(64, kernel_size=(1, 1, 5),
         #                            name="conv_merge_2",
@@ -408,7 +416,7 @@ class ZeepSenseEasy():
         self.conv_output = self.merge_conv3
         self.rnn_input = Reshape((10, self.conv_output.shape[-1] * self.conv_output.shape[-2] * self.conv_output.shape[-3]), name="Output_merge")(self.conv_output)
 
-        self.rnn = LSTM(120, return_sequences=True, name="RNN_1", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn_input)
+        self.rnn = LSTM(120, return_sequences=True, name="RNN_1_Modified", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn_input)
 
 
         self.rnn = LSTM(120, return_sequences=True, name="RNN_2", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn)
@@ -421,6 +429,14 @@ class ZeepSenseEasy():
             outputs=self.rnn_output)
 
     def train(self, file_dir, val_dir, epochs, save_dir=None, load_dir = None):
+        # =======================================Timeline Analysis=======================================
+        #timeline_callback = callbacks.TensorBoard(log_dir = os.path.join(config.SAVE_DIR,'logs'), write_graph=True, write_images=False)
+        #run_options = tf.RunOptions(trace_level = tf.RunOptions.FULL_TRACE)
+        #run_metadata = tf.RunMetadata()
+        #self.model.compile(optimizer=keras.optimizers.Adam(lr = self.config.LEARNING_RATE, decay = self.config.DECAY),
+                           #loss=keras.losses.SparseCategoricalCrossentropy(),
+                           #metrics=['acc'], options=run_options, run_metadata=run_metadata)
+        #================================================================================================
 
         self.model.compile(optimizer=keras.optimizers.Adam(lr = self.config.LEARNING_RATE, decay = self.config.DECAY),
                            loss=keras.losses.SparseCategoricalCrossentropy(),
@@ -439,7 +455,7 @@ class ZeepSenseEasy():
 #=======================================Model Load Weight=======================================
         if not load_dir == None:
             load_weight_dir = os.path.join(load_dir,"zs_halfoverlap.h5")
-            self.model.load_weights(load_weight_dir)
+            self.model.load_weights(load_weight_dir, by_name = True)
 #===============================================================================================
         reduce_lr = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.5,
                                       patience = 10, mode = 'auto',
@@ -449,6 +465,17 @@ class ZeepSenseEasy():
                        verbose=2,
                        validation_data=val_data,
                        callbacks=[self.history, reduce_lr])
+#==============================Timeline Analysis========================================
+        #self.model.fit(data,
+                       #epochs=epochs,
+                       #verbose=2,
+                       #validation_data=val_data,
+                       #callbacks=[self.history, reduce_lr, timeline_callback])
+        #tl = timeline.Timeline(run_metadata.step_stats)
+        #ctf = tl.generate_chrome_trace_format()
+        #with open(os.path.join(config.SAVE_DIR,'timeline.json'), 'w') as f:
+            #f.write(ctf)
+        #print('timeline.json has been saved!')
 #==============================Model Save Weight========================================
         weight_name = 'zs_halfoverlap.h5'
         weight_dir = os.path.join(config.SAVE_DIR, weight_name)
