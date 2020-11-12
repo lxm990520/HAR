@@ -23,8 +23,8 @@ import csv
 SEPCTURAL_SAMPLES = 10  # d(k), dimension for each measurement(e.g. x,y,z...)
 WIDE = 10  # 20       #amount of time intervals
 DROPOUT_RATIO = 0.3
-REGULARIZER_RATE = 0.001
-BUFFER_SIZE = 2000
+REGULARIZER_RATE = 0.0001
+BUFFER_SIZE = 200
 
 TOTAL_ITER_NUM = 30000  # 0000
 
@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore")
 config = Configuration()
 config.INTERVAL_LENGTH = 200
 config.WINDOW_LENGTH = 100
-config.LEARNING_RATE = 0.0001
+config.LEARNING_RATE = 0.001
 config.BATCH_SIZE = 64
 config.DECAY = 0
 config.DATASET = 'HHAR'
@@ -134,7 +134,7 @@ class Tfdata():
 
         temp = np.array([images, labels])
         temp = temp.transpose()  # transpose to a n_img*2 array, so that each match has 2 elements: image&label
-        #np.random.shuffle(temp)
+        np.random.shuffle(temp)
 
         # image_list = list(temp[1])
         # label_list = list(temp[0])
@@ -500,7 +500,7 @@ val_dir = os.path.join(config.DATASET_DIR, 'test_halfoverlap')#to swap test to v
 
 example.train(train_dir,
               test_dir,
-              epochs=139, save_dir= config.SAVE_DIR, load_dir = config.LOAD_DIR)
+              epochs=300, save_dir= config.SAVE_DIR, load_dir = config.LOAD_DIR)
 example.evaluate(val_dir,config.SAVE_DIR)
 
 
