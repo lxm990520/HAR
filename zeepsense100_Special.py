@@ -32,7 +32,7 @@ SEPCTURAL_SAMPLES = 10  # d(k), dimension for each measurement(e.g. x,y,z...)
 WIDE = 10  # 20       #amount of time intervals
 DROPOUT_RATIO = 0.5
 REGULARIZER_RATE = 0.0001
-BUFFER_SIZE = 200
+BUFFER_SIZE = 1000
 
 TOTAL_ITER_NUM = 30000  # 0000
 
@@ -50,7 +50,7 @@ config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
 config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
 config.SENSOR_LIST = ['acce','gyro']
 config.DEVICE_LIST = ['nexus41']
-#config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-10-11-42'
+#config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-12-20-13'
 config.LOAD_DIR = None
 config.fresh()
 config.save()
@@ -421,7 +421,7 @@ class ZeepSenseEasy():
 
         self.rnn = LSTM(120, return_sequences=True, name="RNN_2", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn)
         self.sum_rnn_out = tf.reduce_sum(self.rnn, axis=1, keep_dims=False)
-        self.avg_rnn_out = self.sum_rnn_out/120 # to be modified
+        self.avg_rnn_out = self.sum_rnn_out / tf.cast(self.rnn.shape[-2], tf.float32) # to be modified
         self.rnn_output = Dense(self.config.OUTPUT_DIM, 'softmax',kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE), name="Softmax")(self.avg_rnn_out)
 
         self.model = keras.Model(
