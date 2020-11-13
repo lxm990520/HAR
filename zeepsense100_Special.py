@@ -42,7 +42,7 @@ warnings.filterwarnings("ignore")
 config = Configuration()
 config.INTERVAL_LENGTH = 200
 config.WINDOW_LENGTH = 100
-config.LEARNING_RATE = 0.01
+config.LEARNING_RATE = 0.1
 config.BATCH_SIZE = 64
 config.DECAY = 0
 config.DATASET = 'HHAR'
@@ -161,7 +161,7 @@ class Tfdata():
         image = tf.image.decode_jpeg(image)
         image = tf.image.convert_image_dtype(image, tf.float32)
         image = tf.image.resize(image, [self.config.IMG_SIZE * self.config.INPUT_DIM, self.config.IMG_SIZE * 10])#10 is a changable parameter
-        image = image / 127.5 - 1.0#map image to [-1,1]
+        image = image * 2.0 - 1.0#map image to [-1,1]
         #image = tf.image.per_image_standardization(image)#image standardization
         # label = tf.one_hot(label, OUT_DIM)
         return image, label
@@ -457,9 +457,9 @@ class ZeepSenseEasy():
             load_weight_dir = os.path.join(load_dir,"zs_halfoverlap.h5")
             self.model.load_weights(load_weight_dir, by_name = True)
 #===============================================================================================
-        reduce_lr = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.5,
+        reduce_lr = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.1,
                                       patience = 10, mode = 'auto',
-                                      epsilon = 0.0001)
+                                      epsilon = 0.0001, verbose = 1)
         self.model.fit(data,
                        epochs=epochs,
                        verbose=2,
