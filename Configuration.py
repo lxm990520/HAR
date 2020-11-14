@@ -13,6 +13,9 @@ class Configuration:
         print('LEARNING_RATE : ' + str(self.LEARNING_RATE))
         print('DECAY : ' + str(self.DECAY))
         print('BATCH_SIZE : ' + str(self.BATCH_SIZE))
+        print('REGULARIZER_RATE : ' + str(self.REGULARIZER_RATE))
+        print('DROPOUT_RATIO : ' + str(self.DROPOUT_RATIO))
+        print('BUFFER_SIZE : ' + str(self.BUFFER_SIZE))
         print('=============Dataset Configuration============')
         print('DATASET : ' + str(self.DATASET))
         print('USER_LIST : ' + str(self.USER_LIST))
@@ -33,6 +36,9 @@ class Configuration:
             r.write('\nLEARNING_RATE : ' + str(self.LEARNING_RATE))
             r.write('\nDECAY : ' + str(self.DECAY))
             r.write('\nBATCH_SIZE : ' + str(self.BATCH_SIZE))
+            r.write('\nREGULARIZER_RATE : ' + str(self.REGULARIZER_RATE))
+            r.write('\nDROPOUT_RATIO : ' + str(self.DROPOUT_RATIO))
+            r.write('\nBUFFER_SIZE : ' + str(self.BUFFER_SIZE))
             r.write('\n=============Dataset Configuration============')
             r.write('\nDATASET : ' + str(self.DATASET))
             r.write('\nUSER_LIST : ' + str(self.USER_LIST))
@@ -51,6 +57,9 @@ class Configuration:
         self.LEARNING_RATE = 0.0001
         self.DECAY = 0
         self.BATCH_SIZE = 128
+        self.REGULARIZER_RATE = 0.0001
+        self.DROPOUT_RATIO = 0.5
+        self.BUFFER_SIZE = 1000
         self.LOAD_DIR = None
         self.DATASET = 'HHAR'
         self.USER_LIST = ['a','b','c','d','e','f','g','h','i']

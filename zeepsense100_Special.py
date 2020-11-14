@@ -20,44 +20,13 @@ from tensorflow import keras
 from tensorflow.keras.layers import AveragePooling3D,Reshape,Conv3D,Conv2D,AveragePooling2D,Dropout,\
     MaxPool3D,concatenate,LSTM,Bidirectional,Dense,Activation,RNN,GRU,Softmax,BatchNormalization,Flatten
 # import process4ZS as process
-from keras.callbacks import ReduceLROnPlateau
+from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn import metrics
 from Configuration import Configuration
 import util
 import csv
-
-SEPCTURAL_SAMPLES = 10  # d(k), dimension for each measurement(e.g. x,y,z...)
-WIDE = 10  # 20       #amount of time intervals
-DROPOUT_RATIO = 0.5
-REGULARIZER_RATE = 0.0001
-BUFFER_SIZE = 1000
-
-TOTAL_ITER_NUM = 30000  # 0000
-
-
-warnings.filterwarnings("ignore")
-#==============================Configuration===========================================
-config = Configuration()
-config.INTERVAL_LENGTH = 200
-config.WINDOW_LENGTH = 100
-config.TIME_STEPS = 1
-config.LEARNING_RATE = 0.01
-config.BATCH_SIZE = 512
-config.DECAY = 0
-config.DATASET = 'HHAR'
-config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
-config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
-config.SENSOR_LIST = ['acce','gyro']
-config.DEVICE_LIST = ['nexus41']
-#config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-14-18-30'
-config.LOAD_DIR = None
-config.fresh()
-config.save()
-
-
-
 
 class Tfdata():
     def __init__(self, dir, config):
@@ -176,7 +145,7 @@ class Tfdata():
         img_data = tf.data.Dataset.from_tensor_slices((self.raw_images, self.raw_labels))
         img_data = img_data.map(self.read_image)
         if is_shuffle:
-           img_data = img_data.shuffle(BUFFER_SIZE)
+           img_data = img_data.shuffle(self.config.BUFFER_SIZE)
         img_data = img_data.batch(self.config.BATCH_SIZE, drop_remainder=True)
 
         return img_data
@@ -235,43 +204,36 @@ class LossHistory(keras.callbacks.Callback):
         plt.savefig(loss_dir)
         plt.close(1)
 #==============================================================================================
-# ==============================Model Save Weight========================================
-        weight_name = 'zs_halfoverlap.h5'
-        weight_dir = os.path.join(self.save_dir, weight_name)
-        self.model.save_weights(weight_dir)
-
-# =======================================================================================
-
     def on_train_end(self, batch, logs={}):
         loss_type = 'epoch'
         iters = range(len(self.losses[loss_type]))
 #=======================================Record Accuracy========================================
-        txt_dir = os.path.join(self.save_dir,'Accuracy_record.txt')
-        with open(txt_dir, "a") as r:
-            r.write("*********************************************************************************\n")
-            r.write("here is the accuracy of validation:\n")
-            r.write("this is no merge version\n")
-            r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
-            for i in range(len(self.val_acc[loss_type])):
-                r.write("{}\n".format(str(self.val_acc[loss_type][i])))
-            r.write("*********************************************************************************\n")
-            r.write("here is the loss of validation :\n")
-            r.write("this is no merge version\n")
-            r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
-            for i in range(len(self.val_loss[loss_type])):
-                r.write("{}\n".format(str(self.val_loss[loss_type][i])))
-            r.write("*********************************************************************************\n")
-            r.write("here is the accuracy of training:\n")
-            r.write("this is no merge version\n")
-            r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
-            for i in range(len(self.accuracy[loss_type])):
-                r.write("{}\n".format(str(self.accuracy[loss_type][i])))
-            r.write("*********************************************************************************\n")
-            r.write("here is the loss of training:\n")
-            r.write("this is no merge version\n")
-            r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
-            for i in range(len(self.losses[loss_type])):
-                r.write("{}\n".format(str(self.losses[loss_type][i])))
+        # txt_dir = os.path.join(self.save_dir,'Accuracy_record.txt')
+        # with open(txt_dir, "a") as r:
+        #     r.write("*********************************************************************************\n")
+        #     r.write("here is the accuracy of validation:\n")
+        #     r.write("this is no merge version\n")
+        #     r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
+        #     for i in range(len(self.val_acc[loss_type])):
+        #         r.write("{}\n".format(str(self.val_acc[loss_type][i])))
+        #     r.write("*********************************************************************************\n")
+        #     r.write("here is the loss of validation :\n")
+        #     r.write("this is no merge version\n")
+        #     r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
+        #     for i in range(len(self.val_loss[loss_type])):
+        #         r.write("{}\n".format(str(self.val_loss[loss_type][i])))
+        #     r.write("*********************************************************************************\n")
+        #     r.write("here is the accuracy of training:\n")
+        #     r.write("this is no merge version\n")
+        #     r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
+        #     for i in range(len(self.accuracy[loss_type])):
+        #         r.write("{}\n".format(str(self.accuracy[loss_type][i])))
+        #     r.write("*********************************************************************************\n")
+        #     r.write("here is the loss of training:\n")
+        #     r.write("this is no merge version\n")
+        #     r.write(time.strftime("%Y-%m-%d %I:%M:%S %p\n"))
+        #     for i in range(len(self.losses[loss_type])):
+        #         r.write("{}\n".format(str(self.losses[loss_type][i])))
 
 #==============================================================================================
 #========================================Plot Loss Figure======================================
@@ -302,9 +264,7 @@ class ZeepSenseEasy():
         self.config = config
         gpus = tf.config.experimental.list_physical_devices('GPU')
         print(gpus)
-        self.single_img_length = 200
-
-        self.single_input = keras.Input(shape=(self.config.INPUT_DIM * self.single_img_length, self.config.TIME_STEPS * self.single_img_length, 3), \
+        self.single_input = keras.Input(shape=(self.config.INPUT_DIM * self.config.IMG_SIZE, self.config.TIME_STEPS * self.config.IMG_SIZE, 3), \
                                         name="Input")
         self.sensor_input = [x for x in range(self.config.INPUT_DIM)]
         self.conv1 = [x for x in range(self.config.INPUT_DIM)]
@@ -312,12 +272,12 @@ class ZeepSenseEasy():
         self.conv3 = [x for x in range(self.config.INPUT_DIM)]
         self.sensor_output = [x for x in range(self.config.INPUT_DIM)]
         for sensor in range(self.config.INPUT_DIM):
-            self.sensor_input[sensor] = self.single_input[:, sensor * self.single_img_length : (sensor + 1) * self.single_img_length, :, :]
-            self.sensor_input[sensor] = Reshape((self.single_img_length, self.single_img_length, 3), name = "Input_" + self.config.SENSOR_LIST[sensor])(self.sensor_input[sensor])
+            self.sensor_input[sensor] = self.single_input[:, sensor * self.config.IMG_SIZE : (sensor + 1) * self.config.IMG_SIZE, :, :]
+            self.sensor_input[sensor] = Reshape((self.config.IMG_SIZE, self.config.IMG_SIZE, 3), name = "Input_" + self.config.SENSOR_LIST[sensor])(self.sensor_input[sensor])
 #=======================================================Conv1==============================================
             self.conv1[sensor] = Conv2D(64, (5, 5), (3, 3),
                                         name="conv_" + self.config.SENSOR_LIST[sensor] + "_1",
-                                        kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.sensor_input[sensor])
+                                        kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE))(self.sensor_input[sensor])
             self.conv1[sensor] = BatchNormalization(name = "conv_" + self.config.SENSOR_LIST[sensor] + "_1_bn")(self.conv1[sensor])
             self.conv1[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_relu")(self.conv1[sensor])
             #self.conv1[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.conv1[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_dropout")(self.conv1[sensor])
@@ -325,7 +285,7 @@ class ZeepSenseEasy():
 #=======================================================Conv2==============================================
             self.conv2[sensor] = Conv2D(64, (3, 3), (1, 1),
                                         name="conv_" + self.config.SENSOR_LIST[sensor] + "_2",
-                                        kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.conv1[sensor])
+                                        kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE))(self.conv1[sensor])
             self.conv2[sensor] = BatchNormalization(name = "conv_" + self.config.SENSOR_LIST[sensor] + "_2_bn")(self.conv2[sensor])
             self.conv2[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_relu")(self.conv2[sensor])
             #self.conv2[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.conv2[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_dropout")(self.conv2[sensor])
@@ -333,7 +293,7 @@ class ZeepSenseEasy():
 #=======================================================Conv3==============================================
             self.conv3[sensor] = Conv2D(64, (3, 3), (1, 1),
                                         name="conv_" + self.config.SENSOR_LIST[sensor] + "_3",
-                                        kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.conv2[sensor])
+                                        kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE))(self.conv2[sensor])
             self.conv3[sensor] = BatchNormalization(name="conv_" + self.config.SENSOR_LIST[sensor] + "_3_bn")(self.conv3[sensor])
             self.conv3[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_3_relu")(self.conv3[sensor])
             #self.conv3[sensor] = Dropout(DROPOUT_RATIO,
@@ -370,7 +330,7 @@ class ZeepSenseEasy():
                                    name='conv_merge_1',
                                    strides=(1, 1),
                                    padding='SAME',
-                                   kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
+                                   kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE)
                                    )(self.merge_input)
         self.merge_conv1 = BatchNormalization(name="conv_merge_1_bn")(self.merge_conv1)
         self.merge_conv1 = Activation("relu", name="conv_merge_1_relu")(self.merge_conv1)
@@ -382,7 +342,7 @@ class ZeepSenseEasy():
                                    name='conv_merge_2',
                                    strides=( 1, 1),
                                    padding='SAME',
-                                   kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
+                                   kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE)
                                    )(self.merge_conv1)
         self.merge_conv2 = BatchNormalization(name="conv_merge_2_bn")(self.merge_conv2)
         self.merge_conv2 = Activation("relu", name="conv_merge_2_relu")(self.merge_conv2)
@@ -395,7 +355,7 @@ class ZeepSenseEasy():
                                    name='conv_merge_3',
                                    strides=(1, 1),
                                    padding='SAME',
-                                   kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE)
+                                   kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE)
                                    )(self.merge_conv2)
         self.merge_conv3 = BatchNormalization(name="conv_merge_3_bn")(self.merge_conv3)
         self.merge_conv3 = Activation("relu", name="conv_merge_3_relu")(self.merge_conv3)
@@ -424,11 +384,13 @@ class ZeepSenseEasy():
         # self.rnn = LSTM(120, return_sequences=True, name="RNN_2", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn)
         # self.sum_rnn_out = tf.reduce_sum(self.rnn, axis=1, keep_dims=False)
         # self.avg_rnn_out = self.sum_rnn_out / tf.cast(self.rnn.shape[-2], tf.float32) # to be modified
-        self.fc_1 = Dense(120, 'relu',kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE), name="FC_1")(self.conv_output)
-        self.fc_1 = Dropout(DROPOUT_RATIO,
-                            noise_shape=[self.config.BATCH_SIZE, self.fc_1.shape[-1]],
-                            name = "fc_1_dropout")(self.fc_1)
-        self.fc_output = Dense(self.config.OUTPUT_DIM, 'softmax',kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE), name="Softmax")(self.fc_1)
+        self.fc_1 = Dense(120, 'relu',kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE), name="FC_1")(self.conv_output)
+        self.fc_1 = Dropout(self.config.DROPOUT_RATIO,
+                             noise_shape=[self.config.BATCH_SIZE, self.fc_1.shape[-1]],
+                             name = "fc_1_dropout")(self.fc_1)
+        #self.fc_output = Dense(self.config.OUTPUT_DIM, 'softmax',
+        #                       kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE), name="Softmax")(self.conv_output)
+        self.fc_output = Dense(self.config.OUTPUT_DIM, 'softmax',kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE), name="Softmax")(self.fc_1)
         #self.fc_output = Dropout(DROPOUT_RATIO,
         #                            noise_shape=[self.config.BATCH_SIZE, self.fc_output.shape[-1]],
         #                            name = "fc_output_dropout")(self.fc_output)
@@ -467,13 +429,22 @@ class ZeepSenseEasy():
             self.model.load_weights(load_weight_dir, by_name = True)
 #===============================================================================================
         reduce_lr = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.1,
-                                      patience = 10, mode = 'auto',
-                                      epsilon = 0.0001, verbose = 1, min_lr = 0.00001)
+                                      patience = 20, mode = 'auto',
+                                      epsilon = 0.0001, verbose = 1)
+        weight_name = 'zs_halfoverlap.h5'
+        weight_dir = os.path.join(config.SAVE_DIR, weight_name)
+        checkpoint = ModelCheckpoint(filepath = weight_dir,
+                                     monitor = 'val_loss',
+                                     verbose = 1,
+                                     save_best_only = True,
+                                     save_weights_only = True,
+                                     mode = 'auto',
+                                     period = 1)
         self.model.fit(data,
                        epochs=epochs,
                        verbose=2,
                        validation_data=val_data,
-                       callbacks=[self.history, reduce_lr])
+                       callbacks=[self.history, reduce_lr, checkpoint])
 #==============================Timeline Analysis========================================
         #self.model.fit(data,
                        #epochs=epochs,
@@ -486,9 +457,8 @@ class ZeepSenseEasy():
             #f.write(ctf)
         #print('timeline.json has been saved!')
 #==============================Model Save Weight========================================
-        weight_name = 'zs_halfoverlap.h5'
-        weight_dir = os.path.join(config.SAVE_DIR, weight_name)
-        self.model.save_weights(weight_dir)
+
+        #self.model.save_weights(weight_dir)
 #=======================================================================================
 
     def evaluate(self, val_dir, save_dir):
@@ -526,18 +496,55 @@ class ZeepSenseEasy():
         f2 = metrics.f1_score(y_true, y_pred, average='macro')
         print('micro f1 score: {}, macro f1 score:{}'.format(f1,f2))
 
-#================================Run the Model=========================================
-example = ZeepSenseEasy(config)
-example.model.summary()
-train_dir = os.path.join(config.DATASET_DIR, 'train')
-test_dir = os.path.join(config.DATASET_DIR, 'test')
-val_dir = os.path.join(config.DATASET_DIR, 'test')#to swap test to val
+
+# ================================Run the Model=========================================
+if __name__ == '__main__':
+    SEPCTURAL_SAMPLES = 10  # d(k), dimension for each measurement(e.g. x,y,z...)
+    WIDE = 10  # 20       #amount of time intervals
+
+    TOTAL_ITER_NUM = 30000  # 0000
+
+    warnings.filterwarnings("ignore")
+    # ==============================Configuration===========================================
+    config = Configuration()
+    config.INTERVAL_LENGTH = 200
+    config.WINDOW_LENGTH = 100
+    config.TIME_STEPS = 1
+    config.IMG_SIZE = 200
+    config.LEARNING_RATE = 0.001
+    config.DECAY = 0
+    config.BATCH_SIZE = 512
+    config.REGULARIZER_RATE = 0.001
+    config.DROPOUT_RATIO = 0.5
+    config.BUFFER_SIZE = 1000
+    config.DATASET = 'HHAR'
+    config.USER_LIST = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
+    config.GT_LIST = ['stand', 'sit', 'walk', 'stairsup', 'stairsdown', 'bike']
+    config.SENSOR_LIST = ['acce', 'gyro']
+    config.DEVICE_LIST = ['nexus41']
+    config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-14-23-23'
+    #config.LOAD_DIR = None
+    # config.fresh()
+    # config.save()
+
+    for config.REGULARIZER_RATE in [10,1,0.1,0.01,0.001]:
+        print("RATE:" + str(config.REGULARIZER_RATE))
+        config.fresh()
+        config.save()
+        example = ZeepSenseEasy(config)
+        #example.model.summary()
+        train_dir = os.path.join(config.DATASET_DIR, 'train')
+        test_dir = os.path.join(config.DATASET_DIR, 'test')
+        val_dir = os.path.join(config.DATASET_DIR, 'test')  # to swap test to val
+
+        example.train(train_dir,
+                      test_dir,
+                      epochs=200, save_dir=config.SAVE_DIR, load_dir=config.LOAD_DIR)
+        example.evaluate(val_dir, config.SAVE_DIR)
 
 
-example.train(train_dir,
-              test_dir,
-              epochs=300, save_dir= config.SAVE_DIR, load_dir = config.LOAD_DIR)
-example.evaluate(val_dir,config.SAVE_DIR)
+
+
 
 
 
