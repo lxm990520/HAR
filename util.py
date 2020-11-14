@@ -103,35 +103,36 @@ def picNto1(src_dir,dst_dir,config):
 
         print(user + ' start!')
         flag = False
-        for pic_index in range(len(filelist_sameuser)//config.INPUT_DIM - 10 + 1):
-            # 10 is a changable parameter
+        for pic_index in range(len(filelist_sameuser)//config.INPUT_DIM - config.TIME_STEPS + 1):
+
             filelist_sameusersensor = [file for file in filelist_sameuser if file.split('_')[-2] == config.SENSOR_LIST[0]]
             filelist_sameusersensor.sort(key=takeNumber)
-            if not takeNumber(filelist_sameusersensor[pic_index + 9]) - takeNumber(
-                    filelist_sameusersensor[pic_index]) == 9:  # 9 is a changable parameter
+            if not takeNumber(filelist_sameusersensor[pic_index + config.TIME_STEPS - 1]) - takeNumber(
+                    filelist_sameusersensor[pic_index]) == config.TIME_STEPS - 1:
                 flag = False
                 print("An inconsecutive point found!")
                 continue
 
             if flag:
-                picNbase[:, : 9 * config.IMG_SIZE] = picNbase[:, 1 * config.IMG_SIZE:]
+                if not config.TIME_STEPS == 1:
+                    picNbase[:, : (config.TIME_STEPS - 1) * config.IMG_SIZE] = picNbase[:, 1 * config.IMG_SIZE:]
                 row = 0
                 for sensor in config.SENSOR_LIST:
                     filelist_sameusersensor = [file for file in filelist_sameuser if file.split('_')[-2] == sensor]
                     filelist_sameusersensor.sort(key=takeNumber)
-                    fig = cv2.imread(os.path.join(src_dir, filelist_sameusersensor[pic_index + 9]))
+                    fig = cv2.imread(os.path.join(src_dir, filelist_sameusersensor[pic_index + config.TIME_STEPS - 1]))
                     fig = cv2.resize(fig, (config.IMG_SIZE, config.IMG_SIZE))
                     picNbase[row * config.IMG_SIZE:(row + 1) * config.IMG_SIZE,
-                    9 * config.IMG_SIZE:] = fig
+                    (config.TIME_STEPS - 1) * config.IMG_SIZE:] = fig
                     row += 1
             else:
-                picNbase = np.zeros([config.INPUT_DIM * config.IMG_SIZE, 10 * config.IMG_SIZE, 3])
+                picNbase = np.zeros([config.INPUT_DIM * config.IMG_SIZE, config.TIME_STEPS * config.IMG_SIZE, 3])
                 row = 0
                 for sensor in config.SENSOR_LIST:
                     filelist_sameusersensor = [file for file in filelist_sameuser if file.split('_')[-2] == sensor]
                     filelist_sameusersensor.sort(key=takeNumber)
 
-                    for figure_index in range(10):
+                    for figure_index in range(config.TIME_STEPS):
                         # 10 is a changable parameter
                         # print(pic_index + figure_index)
                         fig = cv2.imread(os.path.join(src_dir, filelist_sameusersensor[pic_index + figure_index]))
@@ -166,11 +167,11 @@ def moveTrainTest(dir,config):
     #         else:
     #             raise NameError("a file is in a wrong place " + os.path.join(root, filename))
     print(dir)
-    for root, dirs, files in os.walk(os.path.join(dir,'train_halfoverlap')):
+    for root, dirs, files in os.walk(os.path.join(dir,'train')):
         if len(files) is not 0:
 
             rootlist = root.split("\\")
-            rootlist[-2] = "test_halfoverlap"
+            rootlist[-2] = "test"
             if not os.path.exists(os.path.join(*rootlist)):
                 mkdir(os.path.join(*rootlist))
             file_testuser = [file for file in files if file.split('_')[1] == config.TEST_USER]

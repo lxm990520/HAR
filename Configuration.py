@@ -63,7 +63,7 @@ class Configuration:
     def fresh(self):
         self.INPUT_DIM = len(self.SENSOR_LIST)
         self.OUTPUT_DIM = len(self.GT_LIST)
-        dir_list = [self.DATASET, 'GAF4ZS', 'f' + str(self.INTERVAL_LENGTH), self.DEVICE_LIST[0]]
+        dir_list = [self.DATASET, 'GAF4ZSFC', 'f' + str(self.INTERVAL_LENGTH), self.DEVICE_LIST[0]]
         self.DATASET_DIR = os.path.join(*dir_list)
         self.VERSION = time.strftime("%m-%d-%H-%M")
 
