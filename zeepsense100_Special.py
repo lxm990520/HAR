@@ -18,7 +18,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 #====================================================
 from tensorflow import keras
 from tensorflow.keras.layers import AveragePooling3D,Reshape,Conv3D,Conv2D,AveragePooling2D,Dropout,\
-    MaxPool3D,concatenate,LSTM,Bidirectional,Dense,Activation,RNN,GRU,Softmax,BatchNormalization
+    MaxPool3D,concatenate,LSTM,Bidirectional,Dense,Activation,RNN,GRU,Softmax,BatchNormalization,Flatten
 # import process4ZS as process
 from keras.callbacks import ReduceLROnPlateau
 import matplotlib.pyplot as plt
@@ -44,15 +44,15 @@ config.INTERVAL_LENGTH = 200
 config.WINDOW_LENGTH = 100
 config.TIME_STEPS = 1
 config.LEARNING_RATE = 0.01
-config.BATCH_SIZE = 64
+config.BATCH_SIZE = 512
 config.DECAY = 0
 config.DATASET = 'HHAR'
 config.USER_LIST = ['a','b','c','d','e','f','g','h','i']
 config.GT_LIST = ['stand','sit','walk','stairsup','stairsdown','bike']
 config.SENSOR_LIST = ['acce','gyro']
 config.DEVICE_LIST = ['nexus41']
-config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-13-21-07'
-#config.LOAD_DIR = None
+#config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-14-18-30'
+config.LOAD_DIR = None
 config.fresh()
 config.save()
 
@@ -161,8 +161,8 @@ class Tfdata():
 
         image = tf.image.decode_jpeg(image)
         image = tf.image.convert_image_dtype(image, tf.float32)
-        image = tf.image.resize(image, [self.config.IMG_SIZE * self.config.INPUT_DIM, self.config.IMG_SIZE * 10])#10 is a changable parameter
-        image = image * 2.0 - 1.0#map image to [-1,1]
+        image = tf.image.resize(image, [self.config.IMG_SIZE * self.config.INPUT_DIM, self.config.IMG_SIZE * self.config.TIME_STEPS])
+        #image = image * 2.0 - 1.0#map image to [-1,1]
         #image = tf.image.per_image_standardization(image)#image standardization
         # label = tf.one_hot(label, OUT_DIM)
         return image, label
@@ -320,7 +320,7 @@ class ZeepSenseEasy():
                                         kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.sensor_input[sensor])
             self.conv1[sensor] = BatchNormalization(name = "conv_" + self.config.SENSOR_LIST[sensor] + "_1_bn")(self.conv1[sensor])
             self.conv1[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_relu")(self.conv1[sensor])
-            self.conv1[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.conv1[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_dropout")(self.conv1[sensor])
+            #self.conv1[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.conv1[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_dropout")(self.conv1[sensor])
             self.conv1[sensor] = AveragePooling2D((2, 2),name="conv_" + self.config.SENSOR_LIST[sensor] + "_1_pool")(self.conv1[sensor])
 #=======================================================Conv2==============================================
             self.conv2[sensor] = Conv2D(64, (3, 3), (1, 1),
@@ -328,7 +328,7 @@ class ZeepSenseEasy():
                                         kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.conv1[sensor])
             self.conv2[sensor] = BatchNormalization(name = "conv_" + self.config.SENSOR_LIST[sensor] + "_2_bn")(self.conv2[sensor])
             self.conv2[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_relu")(self.conv2[sensor])
-            self.conv2[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.conv2[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_dropout")(self.conv2[sensor])
+            #self.conv2[sensor] = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.conv2[sensor].shape[-1]], name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_dropout")(self.conv2[sensor])
             self.conv2[sensor] = AveragePooling2D((2, 2), name="conv_" + self.config.SENSOR_LIST[sensor] + "_2_pool")(self.conv2[sensor])
 #=======================================================Conv3==============================================
             self.conv3[sensor] = Conv2D(64, (3, 3), (1, 1),
@@ -336,9 +336,9 @@ class ZeepSenseEasy():
                                         kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.conv2[sensor])
             self.conv3[sensor] = BatchNormalization(name="conv_" + self.config.SENSOR_LIST[sensor] + "_3_bn")(self.conv3[sensor])
             self.conv3[sensor] = Activation("relu", name="conv_" + self.config.SENSOR_LIST[sensor] + "_3_relu")(self.conv3[sensor])
-            self.conv3[sensor] = Dropout(DROPOUT_RATIO,
-                                         noise_shape=[self.config.BATCH_SIZE, 1, 1, self.conv3[sensor].shape[-1]],
-                                         name="conv_" + self.config.SENSOR_LIST[sensor] + "_3_dropout")(self.conv3[sensor])
+            #self.conv3[sensor] = Dropout(DROPOUT_RATIO,
+            #                             noise_shape=[self.config.BATCH_SIZE, 1, 1, self.conv3[sensor].shape[-1]],
+            #                             name="conv_" + self.config.SENSOR_LIST[sensor] + "_3_dropout")(self.conv3[sensor])
             self.conv3[sensor] = AveragePooling2D((2, 2),
                                                   name="conv_" + self.config.SENSOR_LIST[sensor] + "_3_pool")(self.conv3[sensor])
 #======================================================Output==============================================
@@ -374,8 +374,8 @@ class ZeepSenseEasy():
                                    )(self.merge_input)
         self.merge_conv1 = BatchNormalization(name="conv_merge_1_bn")(self.merge_conv1)
         self.merge_conv1 = Activation("relu", name="conv_merge_1_relu")(self.merge_conv1)
-        self.merge_conv1 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.merge_conv1.shape[-1]],
-                             name="conv_merge_1_dropout")(self.merge_conv1)
+        #self.merge_conv1 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.merge_conv1.shape[-1]],
+                             #name="conv_merge_1_dropout")(self.merge_conv1)
         self.merge_conv1 = AveragePooling2D((1, 2))(self.merge_conv1)
 #========================================Merge Conv2==================================
         self.merge_conv2 = Conv2D(64, kernel_size=(2, 6),
@@ -386,8 +386,8 @@ class ZeepSenseEasy():
                                    )(self.merge_conv1)
         self.merge_conv2 = BatchNormalization(name="conv_merge_2_bn")(self.merge_conv2)
         self.merge_conv2 = Activation("relu", name="conv_merge_2_relu")(self.merge_conv2)
-        self.merge_conv2 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.merge_conv2.shape[-1]],
-                             name="conv_merge_2_dropout")(self.merge_conv2)
+        #self.merge_conv2 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.merge_conv2.shape[-1]],
+                             #name="conv_merge_2_dropout")(self.merge_conv2)
         self.merge_conv2 = AveragePooling2D((1, 2))(self.merge_conv2)
 #=====================================================================================
 #========================================Merge Conv3==================================
@@ -399,8 +399,8 @@ class ZeepSenseEasy():
                                    )(self.merge_conv2)
         self.merge_conv3 = BatchNormalization(name="conv_merge_3_bn")(self.merge_conv3)
         self.merge_conv3 = Activation("relu", name="conv_merge_3_relu")(self.merge_conv3)
-        self.merge_conv3 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.merge_conv3.shape[-1]],
-                             name="conv_merge_3_dropout")(self.merge_conv3)
+        #self.merge_conv3 = Dropout(DROPOUT_RATIO, noise_shape=[self.config.BATCH_SIZE, 1, 1, self.merge_conv3.shape[-1]],
+                             #name="conv_merge_3_dropout")(self.merge_conv3)
         self.merge_conv3 = AveragePooling2D((1, 2))(self.merge_conv3)
 #=====================================================================================
         # self.conv2 = Conv3D(64, kernel_size=(1, 1, 5),
@@ -414,7 +414,8 @@ class ZeepSenseEasy():
         # self.conv2 = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, 64], name="conv_merge_2_dropout")(
         #     self.conv2)
 
-        self.conv_output = Reshape((1, self.merge_conv3.shape[-1] * self.merge_conv3.shape[-2] * self.merge_conv3.shape[-3]), name="Output_merge")(self.merge_conv3)
+        self.conv_output = Flatten(name="Output_merge")(self.merge_conv3)
+
         #self.rnn_input = Reshape((10, self.conv_output.shape[-1] * self.conv_output.shape[-2] * self.conv_output.shape[-3]), name="Output_merge")(self.conv_output)
         #
         # self.rnn = LSTM(120, return_sequences=True, name="RNN_1_Modified", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn_input)
@@ -424,7 +425,13 @@ class ZeepSenseEasy():
         # self.sum_rnn_out = tf.reduce_sum(self.rnn, axis=1, keep_dims=False)
         # self.avg_rnn_out = self.sum_rnn_out / tf.cast(self.rnn.shape[-2], tf.float32) # to be modified
         self.fc_1 = Dense(120, 'relu',kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE), name="FC_1")(self.conv_output)
+        self.fc_1 = Dropout(DROPOUT_RATIO,
+                            noise_shape=[self.config.BATCH_SIZE, self.fc_1.shape[-1]],
+                            name = "fc_1_dropout")(self.fc_1)
         self.fc_output = Dense(self.config.OUTPUT_DIM, 'softmax',kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE), name="Softmax")(self.fc_1)
+        #self.fc_output = Dropout(DROPOUT_RATIO,
+        #                            noise_shape=[self.config.BATCH_SIZE, self.fc_output.shape[-1]],
+        #                            name = "fc_output_dropout")(self.fc_output)
 
         self.model = keras.Model(
             inputs=self.single_input,
@@ -529,7 +536,7 @@ val_dir = os.path.join(config.DATASET_DIR, 'test')#to swap test to val
 
 example.train(train_dir,
               test_dir,
-              epochs=0, save_dir= config.SAVE_DIR, load_dir = config.LOAD_DIR)
+              epochs=300, save_dir= config.SAVE_DIR, load_dir = config.LOAD_DIR)
 example.evaluate(val_dir,config.SAVE_DIR)
 
 
