@@ -18,7 +18,8 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 #====================================================
 from tensorflow import keras
 from tensorflow.keras.layers import AveragePooling3D,Reshape,Conv3D,Conv2D,AveragePooling2D,Dropout,\
-    MaxPool3D,concatenate,LSTM,Bidirectional,Dense,Activation,RNN,GRU,Softmax,BatchNormalization,Flatten
+    MaxPool3D,concatenate,LSTM,Bidirectional,Dense,Activation,RNN,GRU,Softmax,BatchNormalization,Flatten,\
+    GlobalAveragePooling2D
 # import process4ZS as process
 from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 import matplotlib.pyplot as plt
@@ -374,7 +375,7 @@ class ZeepSenseEasy():
         # self.conv2 = Dropout(DROPOUT_RATIO, noise_shape=[BATCH_SIZE, 1, 1, 1, 64], name="conv_merge_2_dropout")(
         #     self.conv2)
 
-        self.conv_output = Flatten(name="Output_merge")(self.merge_conv3)
+
 
         #self.rnn_input = Reshape((10, self.conv_output.shape[-1] * self.conv_output.shape[-2] * self.conv_output.shape[-3]), name="Output_merge")(self.conv_output)
         #
@@ -384,10 +385,15 @@ class ZeepSenseEasy():
         # self.rnn = LSTM(120, return_sequences=True, name="RNN_2", kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE))(self.rnn)
         # self.sum_rnn_out = tf.reduce_sum(self.rnn, axis=1, keep_dims=False)
         # self.avg_rnn_out = self.sum_rnn_out / tf.cast(self.rnn.shape[-2], tf.float32) # to be modified
+        #======================================================GlobalAvgPooling============================================================
+        #self.fc_1 = GlobalAveragePooling2D(name = "Output_avgpooling")(self.merge_conv3)
+        #======================================================FC Layer1===================================================================
+        self.conv_output = Flatten(name="Output_merge")(self.merge_conv3)
         self.fc_1 = Dense(120, 'relu',kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE), name="FC_1")(self.conv_output)
         self.fc_1 = Dropout(self.config.DROPOUT_RATIO,
                              noise_shape=[self.config.BATCH_SIZE, self.fc_1.shape[-1]],
                              name = "fc_1_dropout")(self.fc_1)
+        #==================================================================================================================================
         #self.fc_output = Dense(self.config.OUTPUT_DIM, 'softmax',
         #                       kernel_regularizer=keras.regularizers.l2(REGULARIZER_RATE), name="Softmax")(self.conv_output)
         self.fc_output = Dense(self.config.OUTPUT_DIM, 'softmax',kernel_regularizer=keras.regularizers.l2(self.config.REGULARIZER_RATE), name="Softmax")(self.fc_1)
@@ -429,7 +435,7 @@ class ZeepSenseEasy():
             self.model.load_weights(load_weight_dir, by_name = True)
 #===============================================================================================
         reduce_lr = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.1,
-                                      patience = 20, mode = 'auto',
+                                      patience = 10, mode = 'auto',
                                       epsilon = 0.0001, verbose = 1)
         weight_name = 'zs_halfoverlap.h5'
         weight_dir = os.path.join(config.SAVE_DIR, weight_name)
@@ -522,17 +528,17 @@ if __name__ == '__main__':
     config.GT_LIST = ['stand', 'sit', 'walk', 'stairsup', 'stairsdown', 'bike']
     config.SENSOR_LIST = ['acce', 'gyro']
     config.DEVICE_LIST = ['nexus41']
-    config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-14-23-23'
-    #config.LOAD_DIR = None
+    #config.LOAD_DIR = 'HHAR\\Result\\f200\\nexus41\\11-14-23-23'
+    config.LOAD_DIR = None
     # config.fresh()
     # config.save()
 
-    for config.REGULARIZER_RATE in [10,1,0.1,0.01,0.001]:
+    for config.REGULARIZER_RATE in [0.001]:
         print("RATE:" + str(config.REGULARIZER_RATE))
         config.fresh()
         config.save()
         example = ZeepSenseEasy(config)
-        #example.model.summary()
+        example.model.summary()
         train_dir = os.path.join(config.DATASET_DIR, 'train')
         test_dir = os.path.join(config.DATASET_DIR, 'test')
         val_dir = os.path.join(config.DATASET_DIR, 'test')  # to swap test to val
